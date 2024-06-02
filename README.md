@@ -1,6 +1,3 @@
-# Bjorn
-Bjorn is an educational cybersecurity project designed to run on a Raspberry Pi Zero equipped with a Waveshare screen. Once connected to a network (WiFi, Ethernet, Bluetooth, or USB), Bjorn will discover targets on the network, identify open ports, exposed services, and potential vulnerabilities.
-
 
 I am pleased to introduce you to Bjorn, a CyberViking that, once connected to the network (WiFi, Ethernet, Bluetooth, or USB), will discover targets present on the network, find open ports, exposed services, and potential vulnerabilities…
 With the help of Q-learning, he will learn to improve by performing scans or executing simple brute force or dictionary attacks (ssh, Telnet, SQL, etc.).
