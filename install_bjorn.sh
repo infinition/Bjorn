@@ -306,6 +306,16 @@ setup_bjorn() {
 
     cd Bjorn
 
+    # Update the shared_config.json file with the selected EPD version
+    log "INFO" "Updating E-Paper display configuration..."
+    if [ -f "config/shared_config.json" ]; then
+        sed -i "s/\"epd_type\": \"[^\"]*\"/\"epd_type\": \"$EPD_VERSION\"/" config/shared_config.json
+        check_success "Updated E-Paper display configuration to $EPD_VERSION"
+    else
+        log "ERROR" "Configuration file not found: config/shared_config.json"
+        handle_error "E-Paper display configuration update"
+    fi
+
     # Install requirements with --break-system-packages flag
     log "INFO" "Installing Python requirements..."
     
@@ -514,6 +524,26 @@ main() {
     echo "1. Full installation (recommended)"
     echo "2. Custom installation"
     read -p "Choose an option (1/2): " install_option
+
+    # E-Paper Display Selection
+    echo -e "\n${BLUE}Please select your E-Paper Display version:${NC}"
+    echo "1. epd2in13"
+    echo "2. epd2in13_V2"
+    echo "3. epd2in13_V3"
+    echo "4. epd2in13_V4"
+    
+    while true; do
+        read -p "Enter your choice (1-4): " epd_choice
+        case $epd_choice in
+            1) EPD_VERSION="epd2in13"; break;;
+            2) EPD_VERSION="epd2in13_V2"; break;;
+            3) EPD_VERSION="epd2in13_V3"; break;;
+            4) EPD_VERSION="epd2in13_V4"; break;;
+            *) echo -e "${RED}Invalid choice. Please select 1-4.${NC}";;
+        esac
+    done
+
+    log "INFO" "Selected E-Paper Display version: $EPD_VERSION"
 
     case $install_option in
         1)
