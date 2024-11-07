@@ -855,7 +855,7 @@ Currently hardcoded for the 2.13-inch V2 & V4 e-Paper HAT.
 My program automatically detect the screen model and adapt the python expressions into my code.
 
 For other versions:
-- As i dont have the v1 and v3 to validate my alogorithm, i just hope it will work properly.
+- As i dont have the v1 and v3 to validate my algorithm, i just hope it will work properly.
 
 ### Ghosting removed ! 🍾
 In my journey to make Bjorn work with the different screen versions, I struggled, hacking several parameters and found out that it was possible to remove the ghosting of screens! I let you see this, I think this method will be very useful for all other projects with the e-paper screen!
