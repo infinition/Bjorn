@@ -379,6 +379,24 @@ sudo pip install -r requirements.txt --break-system-packages
 # As i did not succeed "for now" to get a stable installation with a virtual environment, i installed the dependencies system wide (with --break-system-packages), it did not cause any issue so far. You can try to install them in a virtual environment if you want.
 ```
 
+##### 3.1: Configure E-Paper Display Type
+Choose your e-Paper HAT version by modifying the configuration file:
+
+1. Open the configuration file:
+```bash
+sudo vi /home/bjorn/Bjorn/config/shared_config.json
+```
+Press i to enter insert mode
+Locate the line containing "epd_type":
+Change the value according to your screen model:
+
+- For 2.13 V1: "epd_type": "epd2in13",
+- For 2.13 V2: "epd_type": "epd2in13_V2",
+- For 2.13 V3: "epd_type": "epd2in13_V3",
+- For 2.13 V4: "epd_type": "epd2in13_V4",
+
+Press Esc to exit insert mode
+Type :wq and press Enter to save and quit
 
 #### Step 4: Configure File Descriptor Limits
 
