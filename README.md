@@ -1,340 +1,513 @@
-
 # Bjorn
-![image](https://github.com/infinition/Bjorn/assets/37984399/537b2070-d673-4adb-8680-4492ef83679c)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/c5eb4cc1-0c3d-497d-9422-1614651a84ab" alt="thumbnail_IMG_0546">
+</p>
 
+## Table of Contents
 
+- [Introduction](#introduction)
+- [Features](#features)
+- [Design](#design)
+- [Educational Aspects](#educational-aspects)
+- [Disclaimer](#disclaimer)
+- [Extensibility](#extensibility)
+- [Development Status](#development-status)
+- [Detailed Project Description](#detailed-project-description)
+  - [Project Structure](#project-structure)
+  - [Core Files](#core-files)
+  - [Actions](#actions)
+  - [Data Structure](#data-structure)
+  - [Behavior of Bjorn](#behavior-of-bjorn)
+- [Installation and Configuration](#installation-and-configuration)
+  - [Prerequisites](#prerequisites)
+  - [Quick Installation](#quick-installation)
+  - [Manual Installation](#manual-installation)
+    - [Step 1: Activate SPI & I2C](#step-1-activate-spi--i2c)
+    - [Step 2: System Dependencies](#step-2-system-dependencies)
+    - [Step 3: Bjorn Installation](#step-3-bjorn-installation)
+    - [Step 4: Configure File Descriptor Limits](#step-4-configure-file-descriptor-limits)
+    - [Step 5: Reload Systemd and Apply Changes](#step-5-reload-systemd-and-apply-changes)
+    - [Step 6: Modify PAM Configuration Files](#step-6-modify-pam-configuration-files)
+    - [Step 7: Configure Services](#step-7-configure-services)
+- [Running Bjorn](#running-bjorn)
+  - [Manual Start](#manual-start)
+  - [Service Control](#service-control)
+  - [Fresh Start](#fresh-start)
+- [Important Configuration Files](#important-configuration-files)
+  - [Shared Configuration (`shared_config.json`)](#shared-configuration-shared_configjson)
+  - [Actions Configuration (`actions.json`)](#actions-configuration-actionsjson)
+- [Known Issues and Troubleshooting](#known-issues-and-troubleshooting)
+  - [Current Development Issues](#current-development-issues)
+  - [Troubleshooting Steps](#troubleshooting-steps)
+- [E-Paper Display Support](#e-paper-display-support)
+- [Development Guidelines](#development-guidelines)
+  - [Adding New Actions](#adding-new-actions)
+  - [Testing](#testing)
+- [Web Interface](#web-interface)
+- [Project Roadmap](#project-roadmap)
+  - [Current Focus](#current-focus)
+  - [Future Plans](#future-plans)
+- [Contributing](#contributing)
+- [Support and Contact](#support-and-contact)
+- [Conclusion](#conclusion)
+- [License](#license)
+- [Contact](#contact)
+
+---
+
+[↖️](#table-of-contents) 
 ## Introduction
 
+Bjorn is a « Tamagotchi like » sophisticated, autonomous network scanning, vulnerability assessment, and offensive security tool designed to run on a Raspberry Pi equipped with a 2.13-inch e-Paper HAT. This document provides a detailed explanation of the project.
 
-Bjorn is a sophisticated network scanning, vulnerability assessment, and offensive security tool designed to run on a Raspberry Pi equipped with a 2.13-inch e-Paper HAT. This document provides a detailed explanation of the project:
-
+[↖️](#table-of-contents) 
 ## Features
-- Network scanning
-- Vulnerability assessment
-- System attacks
-- Credential brute forcing
-- File stealing
 
+- **Network Scanning**: Identifies live hosts and open ports on the network.
+- **Vulnerability Assessment**: Performs vulnerability scans using Nmap and other tools.
+- **System Attacks**: Conducts brute-force attacks on various services (FTP, SSH, SMB, RDP, Telnet, SQL).
+- **File Stealing**: Extracts data from vulnerable services.
+- **User Interface**: Real-time display on the e-Paper HAT and web interface for monitoring and interaction.
+
+[↖️](#table-of-contents) 
 ## Design
-- Portable, self-contained device
-- Easily deployable for penetration testing and security assessments
 
-## User Interface
-- The e-Paper HAT provides a visual interface for monitoring the scanning process, displaying results, and interacting with Bjorn
+- **Portability**: Self-contained and portable device, ideal for penetration testing.
+- **Modularity**: Extensible architecture allowing  addition of new actions.
+- **Visual Interface**: The e-Paper HAT provides a visual interface for monitoring the ongoing actions, displaying results or stats, and interacting with Bjorn .
 
+[↖️](#table-of-contents) 
 ## Educational Aspects
-- Bjorn is designed as an educational tool to learn and understand cybersecurity and penetration testing techniques
-- The primary goal is to provide a practical means for students and professionals to familiarize themselves with network security practices and vulnerability assessment tools
 
+- **Learning Tool**: Designed as an educational tool to understand cybersecurity concepts and penetration testing techniques.
+- **Practical Experience**: Provides a practical means for students and professionals to familiarize themselves with network security practices and vulnerability assessment tools.
+
+[↖️](#table-of-contents) 
 ## Disclaimer
-- This project is strictly for educational purposes
-- The authors and contributors disclaim any responsibility for misuse of Bjorn
-- Unauthorized use of this tool for malicious activities is prohibited and may be prosecuted by law
 
+- **Ethical Use**: This project is strictly for educational purposes.
+- **Responsibility**: The author and contributors disclaim any responsibility for misuse of Bjorn.
+- **Legal Compliance**: Unauthorized use of this tool for malicious activities is prohibited and may be prosecuted by law.
+
+[↖️](#table-of-contents) 
 ## Extensibility
-- The main purpose of Bjorn is to gain new actions over time, so the actions are not limited to the ones listed above
-- The actions are designed to be modular and can be easily extended or modified to add new functionality
-- From capturing pcap files to cracking hashes, man-in-the-middle attacks, and more, the possibilities are endless
-- It's up to the user to develop new actions and add them to the project
 
+- **Evolution**: The main purpose of Bjorn is to gain new actions and extend his arsenal over time.
+- **Modularity**: Actions are designed to be modular and can be easily extended or modified to add new functionality.
+- **Possibilities**: From capturing pcap files to cracking hashes, man-in-the-middle attacks, and more—the possibilities are endless.
+- **Contribution**: It's up to the user to develop new actions and add them to the project.
+
+[↖️](#table-of-contents) 
 ## Development Status
-- **Project Status:** Ongoing development
-- **Current Version:** Not yet packaged with the Raspberry Pi OS or associated services
-- **Reason:** The project is still in an early stage, requiring further development and debugging
-- **Current Launch Method:** Bjorn is currently launched manually
+
+- **Project Status**: Ongoing development.
+- **Current Version**: Scripted  auto-installer, or manual installation. Not yet packaged with Raspberry Pi OS.
+- **Reason**: The project is still in an early stage, requiring further development and debugging.
 
 
-![Bjorn](https://github.com/infinition/Bjorn/assets/37984399/bcad830d-77d6-4f3e-833d-473eadd33921)
+![Bjorn Display](https://github.com/infinition/Bjorn/assets/37984399/bcad830d-77d6-4f3e-833d-473eadd33921)
 
+---
 
-# Detailed Project Description for Bjorn
+[↖️](#table-of-contents) 
+## Detailed Project Description
 
-## Tree Structure
-
-The project is organized as follows:
+[↖️](#table-of-contents) 
+### Project Structure
 
 ```
-Bjorn_0107v6/
-    Bjorn.py
-    comment.py
-    display.py
-    init_shared.py
-    logger.py
-    orchestrator.py
-    requirements.txt
-    shared.py
-    utils.py
-    webapp.py
-    __init__.py
-    actions/
-        ftp_connector.py
-        nmap_vuln_scanner.py
-        scanning.py
-        smb_connector.py
-        ssh_connector.py
-        steal_files_ftp.py
-        steal_files_smb.py
-        steal_files_ssh.py
-        steal_files_telnet.py
-        telnet_connector.py
-        __init__.py
-    config/
-    data/
-        input/
-            dictionary/
-                passwords.txt
-                users.txt
-            scripts/
-        logs/
-        output/
-            crackedpwd/
-            data_stolen/
-            scan_results/
-            vulnerabilities/
-            zombies/
-    resources/
-        __init__.py
-        fonts/
-        images/
-        waveshare_epd/
-            epd2in13_V2.py
-            epdconfig.py
-            __init__.py
-    web/
-        config.html
-        index.html
+Bjorn/
+├── Bjorn.py
+├── comment.py
+├── display.py
+├── epd_helper.py
+├── init_shared.py
+├── kill_port_8000.sh
+├── logger.py
+├── orchestrator.py
+├── requirements.txt
+├── shared.py
+├── utils.py
+├── webapp.py
+├── __init__.py
+├── actions/
+│   ├── ftp_connector.py
+│   ├── ssh_connector.py
+│   ├── smb_connector.py
+│   ├── rdp_connector.py
+│   ├── telnet_connector.py
+│   ├── sql_connector.py
+│   ├── steal_files_ftp.py
+│   ├── steal_files_ssh.py
+│   ├── steal_files_smb.py
+│   ├── steal_files_rdp.py
+│   ├── steal_files_telnet.py
+│   ├── steal_data_sql.py
+│   ├── nmap_vuln_scanner.py
+│   ├── scanning.py
+│   └── __init__.py
+├── backup/
+│   ├── backups/
+│   └── uploads/
+├── config/
+├── data/
+│   ├── input/
+│   │   └── dictionary/
+│   ├── logs/
+│   └── output/
+│       ├── crackedpwd/
+│       ├── data_stolen/
+│       ├── scan_results/
+│       ├── vulnerabilities/
+│       └── zombies/
+└── resources/
+    └── waveshare_epd/
 ```
 
-## Core Files
+[↖️](#table-of-contents) 
+### Core Files
 
-### Bjorn.py
-The main entry point for the application. It initializes and runs the main components, including the network scanner, orchestrator, display, and web server. 
+#### Bjorn.py
 
-### comment.py
-Handles generating random comments displayed on the e-Paper HAT based on different themes and statuses.
+The main entry point for the application. It initializes and runs the main components, including the network scanner, orchestrator, display, and web server.
 
-### display.py
-Manages the e-Paper HAT display, updating the screen with current information such as network status, vulnerabilities, and various statistics.
+#### comment.py
 
-### logger.py
+Handles generating all the Bjorn comments displayed on the e-Paper HAT based on different themes/actions and statuses.
+
+#### display.py
+
+Manages the e-Paper HAT display, updating the screen with Bjorn character, the dialog/comments, and the current information such as network status, vulnerabilities, and various statistics.
+
+#### epd_helper.py
+
+Handles the low-level interactions with the e-Paper display hardware.
+
+#### logger.py
+
 Defines a custom logger with specific formatting and handlers for console and file logging. It also includes a custom log level for success messages.
 
-### orchestrator.py
-Heuristic engine that orchestrates the different actions such as network scanning, vulnerability scanning, attacks and file stealing. It loads and executes actions based on the configuration and set the status of the actions and also the bjorn status.
+#### orchestrator.py
 
-### shared.py
-Defines the SharedData class that holds configuration settings, paths, and methods for updating and managing shared data across different modules.
+Bjorn’s AI, an heuristic engine that orchestrates the different actions such as network scanning, vulnerability scanning, attacks, and file stealing. It loads and executes actions based on the configuration and sets the status of the actions and Bjorn. 
 
-### init_shared.py
+#### shared.py
+
+Defines the `SharedData` class that holds configuration settings, paths, and methods for updating and managing shared data across different modules.
+
+#### init_shared.py
+
 Initializes shared data that is used across different modules. It loads the configuration and sets up necessary paths and variables.
 
-### utils.py
+#### utils.py
+
 Contains utility functions used throughout the project.
 
-### webapp.py
-Sets up and runs a web server to provide a web interface for monitoring and interacting with Bjorn.
+#### webapp.py
 
+Sets up and runs a web server to provide a web interface for changing settings, monitoring and interacting with Bjorn.
 
-## Actions
+[↖️](#table-of-contents) 
+### Actions
 
-### actions/ftp_connector.py
-Performs brute-force attacks on FTP servers to crack credentials. It saves the cracked passwords to a file.
+#### actions/scanning.py
 
-### actions/nmap_vuln_scanner.py
+Conducts network scanning to identify live hosts and open ports. It updates the network knowledge base (`netkb`) and generates scan results.
+
+#### actions/nmap_vuln_scanner.py
+
 Performs vulnerability scanning using Nmap. It parses the results and updates the vulnerability summary for each host.
 
-### actions/scanning.py
-Conducts network scanning to identify live hosts and open ports. It updates the network knowledge base (netkb) and generates scan results.
+#### Protocol Connectors
 
-### actions/smb_connector.py
-Handles connections and interactions with SMB servers.
+- **ftp_connector.py**: Brute-force attacks on FTP services.
+- **ssh_connector.py**: Brute-force attacks on SSH services.
+- **smb_connector.py**: Brute-force attacks on SMB services.
+- **rdp_connector.py**: Brute-force attacks on RDP services.
+- **telnet_connector.py**: Brute-force attacks on Telnet services.
+- **sql_connector.py**: Brute-force attacks on SQL services.
 
-### actions/ssh_connector.py
-Performs brute-force attacks on SSH servers to crack credentials. It saves the cracked passwords to a file.
+#### File Stealing Modules
 
-### actions/telnet_connector.py
-Performs brute-force attacks on Telnet servers to crack credentials. It saves the cracked passwords to a file.
+- **steal_files_ftp.py**: Steals files from FTP servers.
+- **steal_files_smb.py**: Steals files from SMB shares.
+- **steal_files_ssh.py**: Steals files from SSH servers.
+- **steal_files_telnet.py**: Steals files from Telnet servers.
+- **steal_data_sql.py**: Extracts data from SQL databases.
 
-### actions/steal_files_ftp.py
-Steals files from FTP servers based on the configuration criteria.
+[↖️](#table-of-contents) 
+### Data Structure
 
-### actions/steal_files_smb.py
-Steals files from SMB servers based on the configuration criteria.
+#### Network Knowledge Base (netkb.csv)
 
-### actions/steal_files_ssh.py
-Steals files from SSH servers based on the configuration criteria.
+Located at `data/netkb.csv`. Stores information about:
 
-### actions/steal_files_telnet.py
-Steals files from Telnet servers based on the configuration criteria.
+- Known hosts and their status. (Alive or offline)
+- Open ports and vulnerabilities.
+- Action execution history. (Success or failed)
 
-### The main purpose of Bjorn is to gain new actions over time, so the actions are not limited to the ones listed above. The actions are designed to be modular and can be easily extended or modified to add new functionality. From capturing pcap files to cracking hashes, man in the middle attacks, and more, the possibilities are endless. It's up to the user to develop new actions and add them to the project.
+**Preview Example:**
 
-
-## Configurations
-
-### config/
-This directory contains configuration files such as `shared_config.json` and `actions.json` that define settings and actions to be performed by Bjorn.
-
-
-## Data
-
-### data/
-This directory contains subdirectories for input dictionaries, logs, and output data including cracked passwords, stolen data, scan results, vulnerabilities, and zombie clients.
-### scan_result preview example:
-![Scan result](https://github.com/infinition/Bjorn/assets/37984399/eb4a313a-f90c-4c43-b699-3678271886dc)
-
-
-
-### data/netkb.csv
-At the root of the data directory, there is netkb.csv, which is the network knowledge base that stores information about all known hosts and their open ports, permformed actions, and their status. This file is used to keep track of the network state and the actions performed on each host even on previous network.
-
-### Netkb preview example:
 ![netkb1](https://github.com/infinition/Bjorn/assets/37984399/f641a565-2765-4280-a7d7-5b25c30dcea5)
 ![netkb2](https://github.com/infinition/Bjorn/assets/37984399/f08114a2-d7d1-4f50-b1c4-a9939ba66056)
 
-### data/livestatus.csv
-Contains the livestatus informations used to display the informations on the e-Paper HAT, such as all known hosts, open ports, all hosts currently alive...
+#### Scan Results
 
-#### data/input/
-Contains dictionaries of usernames and passwords used for brute-force attacks and scripts used in the project.
+Located in `data/output/scan_results/`.
+This file is generated everytime the network is scanned. It is used to consolidate the data and update netkb.
 
-#### data/logs/
-Stores log files generated by the application.
+**Example:**
 
-#### data/output/
-Stores output data including cracked passwords, stolen data, scan results, vulnerabilities, and zombie clients files.
+![Scan result](https://github.com/infinition/Bjorn/assets/37984399/eb4a313a-f90c-4c43-b699-3678271886dc)
 
-### resources/
-Contains resources such as fonts and images used by the application.
+#### Live Status (livestatus.csv)
 
-### tests/
-Contains test scripts, at the moment it's an exemple of how could be implemented the a new action file. (attack)
+Contains real-time information displayed on the e-Paper HAT:
 
-### web/
-Contains HTML files for the web interface.
+- Total number of known hosts.
+- Currently alive hosts.
+- Open ports count.
+- Other runtime statistics.
 
-## Behavior of Bjorn
+[↖️](#table-of-contents) 
+### Behavior of Bjorn
 
 Once launched, Bjorn performs the following steps:
 
 1. **Initialization**: Loads configuration, initializes shared data, and sets up necessary components such as the e-Paper HAT display.
-2. **Network Scanning**: Scans the network to identify live hosts and open ports. Updates the network knowledge base (netkb) with the results.
-
+2. **Network Scanning**: Scans the network to identify live hosts and open ports. Updates the network knowledge base (`netkb`) with the results.
 3. **Orchestration**: Orchestrates different actions based on the configuration and network knowledge base. This includes performing vulnerability scanning, attacks, and file stealing.
-3. **Vulnerability Scanning**: Performs vulnerability scans on identified hosts and updates the vulnerability summary.
-4. **Bruteforce, File Stealing and other Attacks**: Starts brute-force attacks, steals files based on the configuration criteria.
-5. **Display Updates**: Continuously updates the e-Paper HAT display with current information such as network status, vulnerabilities, and various statistics. Bjorn also displays random comments based on different themes and statuses.
-6. **Web Server**: Provides a web interface for monitoring and interacting with Bjorn.
+4. **Vulnerability Scanning**: Performs vulnerability scans on identified hosts and updates the vulnerability summary.
+5. **Brute-Force Attacks and File Stealing**: Starts brute-force attacks and steals files based on the configuration criteria.
+6. **Display Updates**: Continuously updates the e-Paper HAT display with current information such as network status, vulnerabilities, and various statistics. Bjorn also displays random comments based on different themes and statuses.
+7. **Web Server**: Provides a web interface for monitoring and interacting with Bjorn.
 
-## Important Files
+---
 
-### requirements.txt
-Lists the Python packages required to run the project.
+[↖️](#table-of-contents) 
+## Installation and Configuration
+### Prerequisites
 
-### Shared Configuration JSON (`shared_config.json`)
-Defines various settings for Bjorn, including boolean settings, time intervals, text settings, and network settings.
+- Raspberry Pi OS installed. 
+    - Stable:
+      - System: 32-bit
+      - Kernel version: 6.6
+      - Debian version: 12 (bookworm) '2024-10-22-raspios-bookworm-armhf-lite'
+- Username and hostname set to `bjorn`.
+- 2.13-inch e-Paper HAT connected to GPIO pins.
 
-### Actions Configuration JSON (`actions.json`)
-Lists the actions to be performed by Bjorn, including the modules and classes to be used.
+At the moment the paper screen v2 & v4 have been tested and implemented.
+I juste hope the V1 & V3 will work the same.
 
-## Conclusion
+[↖️](#table-of-contents) 
+### Quick Installation
 
-Bjorn is a powerful tool designed to perform comprehensive network scanning, vulnerability assessment, and data exfiltration. Its modular design and extensive configuration options allow for flexible and targeted operations. By combining different actions and orchestrating them intelligently, Bjorn can provide valuable insights into network security and help identify and mitigate potential risks.
-The e-Paper HAT display and web interface make it easy to monitor and interact with Bjorn, providing real-time updates and status information. With its extensible architecture and customizable actions, Bjorn can be adapted to suit a wide range of security testing and monitoring needs.
+The fastest way to install Bjorn is using the automatic installation script :
+
+```bash
+# Download and run the installer
+wget https://github.com/infinition/Bjorn/install_bjorn.sh
+sudo chmod +x install_bjorn.sh
+sudo ./install_bjorn.sh
+# Choose the choice 1 for automatic installation. It may take a while as a lot of packages and modules will be installed. You must reboot at the end.
+```
+
+[↖️](#table-of-contents) 
+### Manual Installation
 
 
 
+#### Step 1: Activate SPI & I2C
 
-
-
-
-# Installing Bjorn on Raspberry Pi OS with a 2.13inch e-Paper HAT ###
-Assuming that you have already installed Raspberry Pi OS on your Raspberry Pi with `bjorn` as the hostname & user and that you have connected the 2.13inch e-Paper HAT to the GPIO pins of your Raspberry Pi:
-
-### Activate SPI & I2C ###
 ```bash
 sudo raspi-config
 ```
-- Enable SPI & I2C
 
-### Install the required packages, libraries & update the system ###
-```bash
-sudo apt-get update && sudo apt-get upgrade
-sudo apt install -y python3-pip wget git libopenjp2-7 nmap libopenblas-dev bluez-tools bluez dhcpcd5 bridge-utils
-```
+- Navigate to **"Interface Options"**.
+- Enable **SPI**.
+- Enable **I2C**.
 
-### Update nmap db ###
+#### Step 2: System Dependencies
+
 ```bash
+# Update system
+sudo apt-get update && sudo apt-get upgrade -y
+
+# Install required packages
+
+ sudo apt install -y \
+  libjpeg-dev \
+  zlib1g-dev \
+  libpng-dev \
+  python3-dev \
+  libffi-dev \
+  libssl-dev \
+  libgpiod-dev \
+  libi2c-dev \
+  libatlas-base-dev \
+  build-essential \
+  python3-pip \
+  wget \
+  lsof \
+  git \
+  libopenjp2-7 \
+  nmap \
+  libopenblas-dev \
+  bluez-tools \
+  bluez \
+  dhcpcd5 \
+  bridge-utils \
+  python3-pil
+
+
+# Update Nmap scripts database
+
 sudo nmap --script-updatedb
+
 ```
 
-### Unlock the limits of the system ###
+#### Step 3: Bjorn Installation
+
+```bash
+# Clone the Bjorn repository
+cd /home/bjorn
+git clone https://github.com/infinition/Bjorn.git
+cd Bjorn
+
+# Install Python dependencies within the virtual environment
+sudo pip install -r requirements.txt --break-system-packages
+# As i did not succeed "for now" to get a stable installation with a virtual environment, i installed the dependencies system wide (with --break-system-packages), it did not cause any issue so far. You can try to install them in a virtual environment if you want.
+```
+
+
+#### Step 4: Configure File Descriptor Limits
+
+To prevent `OSError: [Errno 24] Too many open files`, it's essential to increase the file descriptor limits.
+
+##### 4.1: Modify File Descriptor Limits for All Users
+
+Edit `/etc/security/limits.conf`:
+
 ```bash
 sudo vi /etc/security/limits.conf
 ```
+
 Add the following lines:
+
 ```
-* soft nofile 4096
-* hard nofile 4096
+* soft nofile 65535
+* hard nofile 65535
+root soft nofile 65535
+root hard nofile 65535
 ```
 
-### Reboot ###
+##### 4.2: Configure Systemd Limits
+
+Edit `/etc/systemd/system.conf`:
+
 ```bash
-sudo reboot
+sudo vi /etc/systemd/system.conf
 ```
 
-### Download the Bjorn repository & install the required packages ###
+Uncomment and modify:
+
+```
+DefaultLimitNOFILE=65535
+```
+
+Edit `/etc/systemd/user.conf`:
+
 ```bash
-cd ~
-sudo git clone https://github.com/infinition/Bjorn/
-cd Bjorn
-sudo pip install -r requirements.txt --break-system-packages
-#I am using --break-system-packages because i'm not using any venv yet.
+sudo vi /etc/systemd/user.conf
 ```
 
+Uncomment and modify:
 
+```
+DefaultLimitNOFILE=65535
+```
 
-For the moment, the project is hardcoded to use the 2.13inch V2 e-Paper HAT. If you have another version, it might not work with V2. You need to modify the code in `shared.py` & `display.py` to import the correct version (v3, v4...). Get the file from [Waveshare e-Paper](https://github.com/waveshareteam/e-Paper) and replace the existing one in the `resources/waveshare_epd` folder.
+##### 4.3: Create or Modify `/etc/security/limits.d/90-nofile.conf`
 
-### Launch Bjorn ###
 ```bash
-sudo python3 Bjorn.py
+sudo vi /etc/security/limits.d/90-nofile.conf
 ```
 
-### To get a fresh new start with Bjorn, go to the Bjorn root folder  and run this : ###
+Add:
+
+```
+root soft nofile 65535
+root hard nofile 65535
+```
+
+##### 4.4: Adjust the System-wide File Descriptor Limit
+
+Edit `/etc/sysctl.conf`:
+
 ```bash
-sudo rm -rf config/*.json && sudo rm -rf data/*.csv && sudo rm -rf data/*.log && sudo rm -rf data/output/data_stolen/* && sudo rm -rf data/output/crackedpwd/* && sudo rm -rf config/* && sudo rm -rf data/output/scan_results/* && sudo rm -rf __pycache__ && sudo rm -rf config/__pycache__ && sudo rm -rf data/__pycache__  && sudo rm -rf actions/__pycache__  && sudo rm -rf resources/__pycache__ && sudo rm -rf web/__pycache__  && sudo rm -rf *.log && sudo rm -rf resources/waveshare_epd/__pycache__ && sudo rm -rf data/logs/*  && sudo rm -rf data/output/vulnerabilities/* && sudo rm -rf data/logs/*
+sudo vi /etc/sysctl.conf
 ```
-### Everything will be recreated automatically at the next launch : ###
 
+Add:
 
-####  IMPORTANT #### 
-For now, as I am still working on the project, I have not yet created a service for Bjorn, so we need to keep the terminal open to keep Bjorn running. I need to debug and see logs to improve the code. Currently, I'm struggling with the following issues:
+```
+fs.file-max = 2097152
+```
 
-- When Bjorn is running for a long time:
-    - OSError: [Errno 24] Too many open files (despite increasing the system limits)
-- Creating a PAN0 Bluetooth network to share the Raspberry Pi connection with another device:
-    - The discoverable option doesn't persist after a reboot; I need to make it permanent.
-    - Bluetooth appears, but when trying to connect (iPhone, Android, MacBook), it fails, saying the device needs to be removed and reconnected (without success).
+Apply the changes:
 
-### If you still want to create a service to launch Bjorn at startup, along with a service for Bluetooth sharing and another for USB, here’s how to do it: ###
+```bash
+sudo sysctl -p
+```
 
-------------------------------------------------------------------------------------------------
+#### Step 5: Reload Systemd and Apply Changes
 
-### BJORN SERVICE ###
+Reload systemd to apply the new file descriptor limits:
 
-##### Create a systemd service for Bjorn #####
+```bash
+sudo systemctl daemon-reload
+```
+
+#### Step 6: Modify PAM Configuration Files
+
+PAM (Pluggable Authentication Modules) manages how limits are enforced for user sessions. To ensure that the new file descriptor limits are respected, update the following configuration files.
+
+##### Step 6.1: Edit `/etc/pam.d/common-session` and `/etc/pam.d/common-session-noninteractive`
+
+```bash
+sudo vi /etc/pam.d/common-session
+sudo vi /etc/pam.d/common-session-noninteractive
+```
+
+Add this line at the end of both files:
+
+```
+session required pam_limits.so
+```
+
+This ensures that the limits set in `/etc/security/limits.conf` are enforced for all user sessions.
+
+#### Step 7: Configure Services
+
+##### 7.1: Bjorn Service
+
+Create the service file:
+
 ```bash
 sudo vi /etc/systemd/system/bjorn.service
 ```
 
-##### Paste the following content:
+Add the following content:
+
 ```ini
 [Unit]
 Description=Bjorn Service
-After=network.target
+DefaultDependencies=no
+Before=basic.target
+After=local-fs.target
 
 [Service]
+ExecStartPre=/home/bjorn/Bjorn/kill_port_8000.sh
 ExecStart=/usr/bin/python3 /home/bjorn/Bjorn/Bjorn.py
 WorkingDirectory=/home/bjorn/Bjorn
 StandardOutput=inherit
@@ -346,200 +519,70 @@ User=root
 WantedBy=multi-user.target
 ```
 
-##### Make the file executable:
+
+
+##### 7.2: Port 8000 Killer Script
+
+Create the script to free up port 8000:
+
 ```bash
-sudo chmod +x /home/bjorn/Bjorn/Bjorn.py
+vi /home/bjorn/Bjorn/kill_port_8000.sh
 ```
 
-##### Enable and start the service:
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable bjorn.service
-sudo systemctl start bjorn.service
-sudo systemctl stop bjorn.service
-sudo systemctl status bjorn.service
-```
+Add:
 
-##### If the service does not start correctly, you can check the logs for more details with the following command:
-```bash
-sudo journalctl -u bjorn.service
-```
-
-------------------------------------------------------------------------------------------------
-
-### Bluetooth PAN0 to share the Raspberry Pi connection with another device by assigning a static IP address ###
-```bash
-sudo apt-get install bluez-tools
-```
-
-Create the file `/etc/systemd/network/pan0.netdev`:
-```bash
-sudo vi /etc/systemd/network/pan0.netdev
-```
-
-Add the following content:
-```ini
-[NetDev]
-Name=pan0
-Kind=bridge
-```
-
-Create the file `/etc/systemd/network/pan0.network`:
-```bash
-sudo vi /etc/systemd/network/pan0.network
-```
-
-Add the following content:
-```ini
-[Match]
-Name=pan0
-
-[Network]
-Address=172.20.1.1/24
-DHCPServer=yes
-```
-
-Create the file `/etc/systemd/system/bt-pan.service`:
-```bash
-sudo vi /etc/systemd/system/bt-pan.service
-```
-
-Add the following content:
-```ini
-[Unit]
-Description=Bluetooth PAN Service
-After=network.target
-
-[Service]
-ExecStartPre=-/usr/bin/ip link delete pan0 type bridge
-ExecStartPre=/usr/bin/ip link add name pan0 type bridge
-ExecStart=/usr/bin/bt-network -s nap pan0
-ExecStartPost=/usr/bin/ip link set pan0 up
-ExecStartPost=-/usr/sbin/ip addr add 172.20.1.1/24 dev pan0
-ExecStartPost=/usr/local/bin/set_bluetooth_discoverable.sh
-ExecStartPost=/usr/bin/bt-adapter --set Discoverable 1
-Type=simple
-RemainAfterExit=yes
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Modify the Bluetooth configuration:
-```bash
-sudo vi /etc/bluetooth/main.conf
-```
-
-Add the following line:
-```ini
-[General]
-DisablePlugins = sap
-```
-
-Create the file `/usr/local/bin/set_bluetooth_discoverable.sh`:
-```bash
-sudo vi /usr/local/bin/set_bluetooth_discoverable.sh
-```
-
-Add the following content:
 ```bash
 #!/bin/bash
-/usr/bin/bt-adapter --set Discoverable 1
+PORT=8000
+PIDS=$(lsof -t -i:$PORT)
+
+if [ -n "$PIDS" ]; then
+    echo "Killing PIDs using port $PORT: $PIDS"
+    kill -9 $PIDS
+fi
 ```
 
 Make the script executable:
+
 ```bash
-sudo chmod +x /usr/local/bin/set_bluetooth_discoverable.sh
+chmod +x /home/bjorn/Bjorn/kill_port_8000.sh
 ```
 
-Create the file `/etc/systemd/system/bt-discoverable.service`:
-```bash
-sudo vi /etc/systemd/system/bt-discoverable.service
-```
 
-Add the following content:
-```ini
-[Unit]
-Description=Make Bluetooth Discoverable
-After=bluetooth.target
+##### 7.3: USB Gadget Configuration
 
-[Service]
-ExecStart=/usr/local/bin/set_bluetooth_discoverable.sh
-Type=oneshot
+Modify `/boot/firmware/cmdline.txt`:
 
-[Install]
-WantedBy=multi-user.target
-```
-
-Reload the systemd configuration:
-```bash
-sudo systemctl daemon-reload
-sudo systemctl restart bluetooth
-sudo systemctl status bluetooth
-```
-
-Enable and start the services:
-```bash
-sudo systemctl enable systemd-networkd
-sudo systemctl enable bt-pan
-sudo systemctl enable bt-discoverable
-
-sudo systemctl start systemd-networkd
-sudo systemctl start bt-pan
-sudo systemctl start bt-discoverable
-```
-
-Check the status of the services:
-```bash
-sudo systemctl status bt-pan
-sudo systemctl status bt-discoverable
-```
-
-Check the pan0 interface:
-```bash
-ip addr show pan0
-```
-
-Check the status of the service:
-```bash
-sudo journalctl -xeu bt-pan.service
-```
-
-Check the neighbors (devices connected via Bluetooth):
-```bash
-sudo ip neigh show dev pan0
-```
-
-------------------------------------------------------------------------------------------------
-
-### USB Gadget (RNDIS) : Raspberry Pi Zero W (Raspberry Pi OS) to Windows PC ###
-
-Modify the file `/boot/firmware/cmdline.txt`:
 ```bash
 sudo vi /boot/firmware/cmdline.txt
 ```
 
-Add the following line right after `rootwait`:
-```bash
+Add the following right after `rootwait`:
+
+```
 modules-load=dwc2,g_ether
 ```
 
-Modify the file `/boot/firmware/config.txt`:
+Modify `/boot/firmware/config.txt`:
+
 ```bash
 sudo vi /boot/firmware/config.txt
 ```
 
-Add the following line at the end of the file:
-```bash
+Add at the end of the file:
+
+```
 dtoverlay=dwc2
 ```
 
-Create a script to configure the USB gadget:
+Create the USB gadget script:
+
 ```bash
 sudo vi /usr/local/bin/usb-gadget.sh
 ```
 
 Add the following content:
+
 ```bash
 #!/bin/bash
 set -e
@@ -572,9 +615,7 @@ fi
 ln -s functions/ecm.usb0 configs/c.1/
 
 # Ensure the device is not busy before listing available USB device controllers
-max_retries=
-
-10
+max_retries=10
 retry_count=0
 
 while ! ls /sys/class/udc > UDC 2>/dev/null; do
@@ -595,16 +636,19 @@ fi
 ```
 
 Make the script executable:
+
 ```bash
 sudo chmod +x /usr/local/bin/usb-gadget.sh
 ```
 
-Create a systemd service to run the script at startup:
+Create the systemd service:
+
 ```bash
 sudo vi /etc/systemd/system/usb-gadget.service
 ```
 
-Add the following content:
+Add:
+
 ```ini
 [Unit]
 Description=USB Gadget Service
@@ -620,12 +664,14 @@ RemainAfterExit=yes
 WantedBy=multi-user.target
 ```
 
-Configure usb0:
+Configure `usb0`:
+
 ```bash
 sudo vi /etc/network/interfaces
 ```
 
-Add the following content:
+Add:
+
 ```ini
 allow-hotplug usb0
 iface usb0 inet static
@@ -634,6 +680,7 @@ iface usb0 inet static
 ```
 
 Reload the services:
+
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable systemd-networkd
@@ -642,9 +689,276 @@ sudo systemctl start systemd-networkd
 sudo systemctl start usb-gadget
 ```
 
-### Windows PC Configuration ###
-Set the static IP address:
-- IP Address: 172.20.2.2
-- Subnet Mask: 255.255.255.0
-- Default Gateway: 172.20.2.1
-- DNS Servers: 8.8.8.8, 8.8.4.4
+You must reboot to be able to use it as a USB gadget (with ip)
+###### Windows PC Configuration
+
+Set the static IP address on your Windows PC:
+
+- **IP Address**: `172.20.2.2`
+- **Subnet Mask**: `255.255.255.0`
+- **Default Gateway**: `172.20.2.1`
+- **DNS Servers**: `8.8.8.8`, `8.8.4.4`
+
+---
+
+[↖️](#table-of-contents) 
+## Running Bjorn
+
+### Manual Start
+
+To manually start Bjorn (without the service, ensure the service is  stopped « sudo systemctl stop bjorn.service »):
+
+```bash
+cd /home/bjorn/Bjorn
+
+# Run Bjorn
+sudo python Bjorn.py
+```
+
+
+### Service Control
+
+Control the Bjorn service:
+
+```bash
+# Start Bjorn
+sudo systemctl start bjorn.service
+
+# Stop Bjorn
+sudo systemctl stop bjorn.service
+
+# Check status
+sudo systemctl status bjorn.service
+
+# View logs
+sudo journalctl -u bjorn.service
+```
+
+### Fresh Start
+
+To reset Bjorn to a clean state:
+
+```bash
+sudo rm -rf /home/bjorn/Bjorn/config/*.json \
+    /home/bjorn/Bjorn/data/*.csv \
+    /home/bjorn/Bjorn/data/*.log \
+    /home/bjorn/Bjorn/data/output/data_stolen/* \
+    /home/bjorn/Bjorn/data/output/crackedpwd/* \
+    /home/bjorn/Bjorn/config/* \
+    /home/bjorn/Bjorn/data/output/scan_results/* \
+    /home/bjorn/Bjorn/__pycache__ \
+    /home/bjorn/Bjorn/config/__pycache__ \
+    /home/bjorn/Bjorn/data/__pycache__ \
+    /home/bjorn/Bjorn/actions/__pycache__ \
+    /home/bjorn/Bjorn/resources/__pycache__ \
+    /home/bjorn/Bjorn/web/__pycache__ \
+    /home/bjorn/Bjorn/*.log \
+    /home/bjorn/Bjorn/resources/waveshare_epd/__pycache__ \
+    /home/bjorn/Bjorn/data/logs/* \
+    /home/bjorn/Bjorn/data/output/vulnerabilities/* \
+    /home/bjorn/Bjorn/data/logs/*
+
+```
+
+Everything will be recreated automatically at the next launch of Bjorn.
+
+---
+
+[↖️](#table-of-contents) 
+## Important Configuration Files
+
+### Shared Configuration (`shared_config.json`)
+
+Defines various settings for Bjorn, including:
+
+- Boolean settings (`manual_mode`, `websrv`, `debug_mode`, etc.).
+- Time intervals and delays.
+- Network settings.
+- Port lists and blacklists.
+These settings are accessible on the webpage.
+
+### Actions Configuration (`actions.json`)
+
+Lists the actions to be performed by Bjorn, including (dynamically generated with the content of the folder):
+
+- Module and class definitions.
+- Port assignments.
+- Parent-child relationships.
+- Action status definitions.
+
+---
+
+[↖️](#table-of-contents) 
+## Known Issues and Troubleshooting
+
+### Current Development Issues
+
+#### 1. Long Runtime Issue
+
+- **Problem**: `OSError: [Errno 24] Too many open files`
+- **Status**: Partially resolved with system limits configuration.
+- **Workaround**: Implemented file descriptor limits increase.
+- **Monitoring**: Check open files with `lsof -p $(pgrep -f Bjorn.py) | wc -l`
+- At the moment the logs show periodically this information as (FD : XXX)
+
+### Troubleshooting Steps
+
+#### 1. Service Issues
+
+```bash
+# Check service status
+sudo systemctl status bjorn.service
+
+# View detailed logs
+sudo journalctl -u bjorn.service -f
+
+# Check port 8000 usage
+sudo lsof -i :8000
+```
+
+#### 2. Display Issues
+
+```bash
+# Verify SPI devices
+ls /dev/spi*
+
+# Check user permissions
+sudo usermod -a -G spi,gpio bjorn
+```
+
+#### 3. Network Issues
+
+```bash
+# Check network interfaces
+ip addr show
+
+# Test USB gadget interface
+ip link show usb0
+```
+
+#### 4. Permission Issues
+
+```bash
+# Fix ownership
+sudo chown -R bjorn:bjorn /home/bjorn/Bjorn
+
+# Fix permissions
+sudo chmod -R 755 /home/bjorn/Bjorn
+```
+
+---
+
+[↖️](#table-of-contents) 
+## E-Paper Display Support
+
+Currently hardcoded for the 2.13-inch V2 & V4 e-Paper HAT. 
+My program automatically detect the screen model and adapt the python expressions into my code.
+
+For other versions:
+- As i dont have the v1 and v3 to validate my alogorithm, i just hope it will work properly.
+
+### Ghosting removed ! 🍾
+In my journey to make Bjorn work with the different screen versions, I struggled, hacking several parameters and found out that it was possible to remove the ghosting of screens! I let you see this, I think this method will be very useful for all other projects with the e-paper screen!
+
+---
+
+[↖️](#table-of-contents) 
+## Development Guidelines
+
+### Adding New Actions
+
+1. Create a new action file in `actions/`.
+2. Implement required methods:
+   - `__init__(self, shared_data)`
+   - `execute(self, ip, port, row, status_key)`
+3. Add the action to `actions.json`.
+4. Follow existing action patterns.
+
+### Testing
+
+1. Create a test environment.
+2. Use an isolated network.
+3. Follow ethical guidelines.
+4. Document test cases.
+
+---
+
+[↖️](#table-of-contents) 
+## Web Interface
+
+- **Access**: `http://[device-ip]:8000`
+- **Features**:
+  - Real-time monitoring with a console.
+  - Configuration management.
+  - Viewing results. (Credentials and files)
+  - System control.
+
+---
+
+[↖️](#table-of-contents) 
+## Project Roadmap
+
+### Current Focus
+
+- Stability improvements.
+- Bug fixes.
+- Service reliability.
+- Documentation updates.
+
+### Future Plans
+
+- Additional attack modules.
+- Enhanced reporting.
+- Improved user interface.
+- Extended protocol support.
+
+---
+
+[↖️](#table-of-contents) 
+## Contributing
+
+The project welcomes contributions in:
+
+- New attack modules.
+- Bug fixes.
+- Documentation.
+- Feature improvements.
+
+---
+
+[↖️](#table-of-contents) 
+## Support and Contact
+
+- **Report Issues**: Via GitHub.
+- **Guidelines**:
+  - Follow ethical guidelines.
+  - Document reproduction steps.
+  - Provide logs and context.
+
+---
+
+[↖️](#table-of-contents) 
+## Conclusion
+
+Bjorn is a powerful tool designed to perform comprehensive network scanning, vulnerability assessment, and data exfiltration. Its modular design and extensive configuration options allow for flexible and targeted operations. By combining different actions and orchestrating them intelligently, Bjorn can provide valuable insights into network security and help identify and mitigate potential risks.
+
+The e-Paper HAT display and web interface make it easy to monitor and interact with Bjorn, providing real-time updates and status information. With its extensible architecture and customizable actions, Bjorn can be adapted to suit a wide range of security testing and monitoring needs.
+
+[↖️](#table-of-contents) 
+## License
+
+Bjorn is distributed under the MIT License. See the `LICENSE` file for more information.
+
+---
+
+[↖️](#table-of-contents) 
+## Contact
+
+- **Author**: infinition
+- **GitHub**: [infinition/Bjorn](https://github.com/infinition/Bjorn)
+
+---
+
+**Note**: This document is subject to change as the project evolves. Please refer to the GitHub repository for the most recent updates.
+
+---

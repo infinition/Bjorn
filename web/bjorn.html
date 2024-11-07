@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bjorn Cyberviking - Bjorn</title>
+    <link rel="icon" href="web/images/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="web/css/styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <script defer>
+        var delay = 5000;  // Default value in case the fetch fails
+        var intervalId;
+
+        function fetchWebDelay() {
+            fetch('/get_web_delay')
+                .then(response => response.json())
+                .then(data => {
+                    delay = data.web_delay;
+                    startLiveview();  // Start live view after setting the delay
+                })
+                .catch(error => {
+                    console.error('Error fetching web delay:', error);
+                    startLiveview();  // Start live view even if fetch fails
+                });
+        }
+
+        function updateImage() {
+            var image = document.getElementById("screenImage_Home");
+            var newImage = new Image();
+            newImage.onload = function() {
+                image.src = newImage.src; // Update only if the new image loads successfully
+            };
+            newImage.onerror = function() {
+                console.warn("New image could not be loaded, keeping the previous image.");
+            };
+            newImage.src = "screen.png?t=" + new Date().getTime(); // Prevent caching
+        }
+
+        function startLiveview() {
+            updateImage(); // Immediately update the image
+            intervalId = setInterval(updateImage, delay); // Then update at the specified interval
+        }
+
+        function stopLiveview() {
+            clearInterval(intervalId);
+        }
+
+        function resizeImage(event) {
+            var image = document.getElementById("screenImage_Home");
+            var height = parseFloat(window.getComputedStyle(image).height);
+            if (event.deltaY < 0) {
+                // Scroll up, increase height
+                height *= 1.1;
+            } else {
+                // Scroll down, decrease height
+                height /= 1.1;
+            }
+            image.style.height = height + 'px';
+            image.style.width = 'auto'; // Ensure aspect ratio is maintained
+        }
+
+        function toggleMenu() {
+            var toolbar = document.querySelector('.toolbar');
+            var imageContainer = document.querySelector('.image-container');
+            if (toolbar.style.display === 'flex') {
+                toolbar.style.display = 'none';
+                imageContainer.style.width = '100%'; // Adjust width when toolbar is hidden
+            } else {
+                toolbar.style.display = 'flex';
+                imageContainer.style.width = 'calc(100%)'; // Adjust width when toolbar is visible
+            }
+            adjustImageHeight(); // Adjust image height after toggling toolbar
+        }
+
+        function adjustImageHeight() {
+            var windowHeight = window.innerHeight;
+            var image = document.getElementById("screenImage_Home");
+            image.style.height = windowHeight + 'px';
+            image.style.width = 'auto'; // Maintain aspect ratio
+        }
+
+        window.addEventListener('load', () => {
+            fetchWebDelay();  // Fetch web delay on load
+            adjustImageHeight();
+        });
+        window.addEventListener('beforeunload', stopLiveview);
+        window.addEventListener('wheel', resizeImage);
+        window.addEventListener('resize', adjustImageHeight); // Adjust height on window resize
+
+    </script>
+</head>
+<body>
+    <div class="toolbar" id="mainToolbar">
+        <button type="button" onclick="window.location.href='/index.html'" title="Playground">
+            <img src="/web/images/console_icon.png" alt="Bjorn" style="height: 50px;">
+        </button>
+        <button type="button" onclick="window.location.href='/config.html'" title="Config">
+            <img src="/web/images/config_icon.png" alt="Icon_config" style="height: 50px;">
+        </button>
+        <button type="button" onclick="window.location.href='/network.html'" title="Network">
+            <img src="/web/images/network_icon.png" alt="Icon_network" style="height: 50px;">
+        </button>
+        <button type="button" onclick="window.location.href='/netkb.html'" title="NetKB">
+            <img src="/web/images/netkb_icon.png" alt="Icon_netkb" style="height: 50px;">
+        </button>
+        <button type="button" onclick="window.location.href='/credentials.html'" title="Credentials">
+            <img src="/web/images/cred_icon.png" alt="Icon_cred" style="height: 50px;">
+        </button>
+        <button type="button" onclick="window.location.href='/loot.html'" title="Loot">
+            <img src="/web/images/loot_icon.png" alt="Icon_loot" style="height: 50px;">
+        </button>
+    </div>
+    <div class="image-container">
+        <img id="screenImage_Home" src="screen.png" onclick="toggleMenu()" alt="Bjorn">
+    </div>
+</div>
+
+</body>
+</html>

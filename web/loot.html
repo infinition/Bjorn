@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bjorn Cyberviking - Loot</title>
+    <link rel="icon" href="web/images/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="web/css/styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <script src="web/scripts/loot.js" defer></script>
+
+</head>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const fileList = document.getElementById("file-list");
+
+        let currentPath = "/"; // Start at root
+
+        function fetchFiles(path) {
+            fetch(`/list_files?path=${encodeURIComponent(path)}`)
+                .then(response => response.json())
+                .then(data => {
+                    displayFiles(data, path);
+                })
+                .catch(error => {
+                    console.error('Error fetching files:', error);
+                });
+        }
+
+        function displayFiles(files, path) {
+            currentPath = path;
+            fileList.innerHTML = "";
+
+            files.forEach(file => {
+                const div = document.createElement("div");
+                div.textContent = file.name;
+                div.classList.add(file.is_directory ? "folder" : "file");
+
+                div.addEventListener("click", () => {
+                    if (file.is_directory) {
+                        fetchFiles(`${path}/${file.name}`);
+                    } else {
+                        window.open(`${path}/${file.name}`, '_blank');
+                    }
+                });
+
+                fileList.appendChild(div);
+            });
+        }
+
+        fetchFiles(currentPath);
+    });
+</script>
+<body>
+    <div class="toolbar" id="mainToolbar">
+        <button type="button" onclick="window.location.href='/index.html'" title="Playground">
+            <img src="/web/images/console_icon.png" alt="Bjorn" style="height: 50px;">
+        </button>
+        <button type="button" onclick="window.location.href='/config.html'" title="Config">
+            <img src="/web/images/config_icon.png" alt="Icon_config" style="height: 50px;">
+        </button>
+        <button type="button" onclick="window.location.href='/network.html'" title="Network">
+            <img src="/web/images/network_icon.png" alt="Icon_network" style="height: 50px;">
+        </button>
+        <button type="button" onclick="window.location.href='/netkb.html'" title="NetKB">
+            <img src="/web/images/netkb_icon.png" alt="Icon_netkb" style="height: 50px;">
+        </button>
+        <button type="button" onclick="window.location.href='/credentials.html'" title="Credentials">
+            <img src="/web/images/cred_icon.png" alt="Icon_cred" style="height: 50px;">
+        </button>
+        <button type="button" onclick="window.location.href='/loot.html'" title="Loot">
+            <img src="/web/images/loot_icon.png" alt="Icon_loot" style="height: 50px;">
+        </button>
+    </div>
+    <div class="console-toolbar">
+        <button type="button" class="toolbar-button" onclick="adjustLootFontSize(-1)" title="-">
+            <img src="/web/images/less.png" alt="Icon_less" style="height: 50px;">
+        </button>
+
+        <button id="toggle-toolbar" type="button" class="toolbar-button" onclick="toggleLootToolbar()" data-open="false">
+            <img id="toggle-icon" src="/web/images/hide.png" alt="Toggle Toolbar" style="height: 50px;">
+        </button>
+
+        <button type="button" class="toolbar-button" onclick="adjustLootFontSize(1)" title="+">
+            <img src="/web/images/plus.png" alt="Icon_plus" style="height: 50px;">
+        </button>
+    </div>
+    <div class="loot-container">
+        <div id="file-list">
+            <!-- The file list will be inserted here by JavaScript -->
+        </div>
+    </div>
+</body>
+</html>

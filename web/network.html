@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bjorn Cyberviking - Network</title>
+    <link rel="icon" href="web/images/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="web/css/styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <script src="web/scripts/network.js" defer></script>
+
+</head>
+<body>
+    <div class="toolbar" id="mainToolbar">
+        <button type="button" onclick="window.location.href='/index.html'" title="Playground">
+            <img src="/web/images/console_icon.png" alt="Bjorn" style="height: 50px;">
+        </button>
+        <button type="button" onclick="window.location.href='/config.html'" title="Config">
+            <img src="/web/images/config_icon.png" alt="Icon_config" style="height: 50px;">
+        </button>
+        <button type="button" onclick="window.location.href='/network.html'" title="Network">
+            <img src="/web/images/network_icon.png" alt="Icon_network" style="height: 50px;">
+        </button>
+        <button type="button" onclick="window.location.href='/netkb.html'" title="NetKB">
+            <img src="/web/images/netkb_icon.png" alt="Icon_netkb" style="height: 50px;">
+        </button>
+        <button type="button" onclick="window.location.href='/credentials.html'" title="Credentials">
+            <img src="/web/images/cred_icon.png" alt="Icon_cred" style="height: 50px;">
+        </button>
+        <button type="button" onclick="window.location.href='/loot.html'" title="Loot">
+            <img src="/web/images/loot_icon.png" alt="Icon_loot" style="height: 50px;">
+        </button>
+    </div>
+    <div class="console-toolbar">
+        <button type="button" class="toolbar-button" onclick="adjustNetworkFontSize(-1)" title="-">
+            <img src="/web/images/less.png" alt="Icon_less" style="height: 50px;">
+        </button>
+   
+        <button id="toggle-toolbar" type="button" class="toolbar-button" onclick="toggleNetworkToolbar()" data-open="false">
+            <img id="toggle-icon" src="/web/images/hide.png" alt="Toggle Toolbar" style="height: 50px;">
+        </button>
+
+        <button type="button" class="toolbar-button" onclick="adjustNetworkFontSize(1)" title="+">
+            <img src="/web/images/plus.png" alt="Icon_plus" style="height: 50px;">
+        </button>
+
+    </div>
+    <div class="network-container">
+        <div id="network-table" class="scrollable-table">
+            <!-- The table will be inserted here by JavaScript -->
+        </div>
+    </div>
+</body>
+</html>
