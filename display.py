@@ -33,6 +33,7 @@ class Display:
     def __init__(self, shared_data):
         """Initialize the display and start the main image and shared data update threads."""
         self.shared_data = shared_data
+        self.config = self.shared_data.config
         self.shared_data.bjornstatustext2 = "Awakening..."
         self.commentaire_ia = Commentaireia()
         self.semaphore = threading.Semaphore(10)
@@ -314,6 +315,10 @@ class Display:
                 image.paste(self.shared_data.bjornstatusimage, (int(3 * self.scale_factor_x), int(60 * self.scale_factor_y)))
                 draw.text((int(35 * self.scale_factor_x), int(65 * self.scale_factor_y)), self.shared_data.bjornstatustext, font=self.shared_data.font_arial9, fill=0)
                 draw.text((int(35 * self.scale_factor_x), int(75 * self.scale_factor_y)), self.shared_data.bjornstatustext2, font=self.shared_data.font_arial9, fill=0)
+
+                #Gonna just roll with the bmp at the moment for the 2in7 display please replace with a resizable format
+                if (self.config["epd_type"]) == "epd2in7":
+                    image.paste(self.shared_data.frise, (int(20 * self.scale_factor_x), int(160 * self.scale_factor_y)))
 
                 image.paste(self.shared_data.frise, (int(0 * self.scale_factor_x), int(160 * self.scale_factor_y)))
 
