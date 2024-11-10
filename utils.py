@@ -28,6 +28,18 @@ class WebUtils:
         self.actions = None  # List that contains all actions
         self.standalone_actions = None  # List that contains all standalone actions
 
+    def get_ip_address():
+    """Get the device's IP address"""
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip_address = s.getsockname()[0]
+        s.close()
+        return ip_address
+    except Exception:
+        return "IP Not Found"
+    
     def load_actions(self):
         """Load all actions from the actions file"""
         if self.actions is None or self.standalone_actions is None:
