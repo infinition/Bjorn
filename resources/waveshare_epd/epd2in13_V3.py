@@ -199,8 +199,11 @@ class EPD:
     function : Initialize the e-Paper register
     parameter:
     '''
-    def init(self):
-        if (epdconfig.module_init() != 0):
+    def init(self, update=None):
+        if update is None:
+            update = self.FULL_UPDATE
+
+        if epdconfig.module_init() != 0:
             return -1
         # EPD hardware init start
         self.reset()
