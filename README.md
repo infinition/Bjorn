@@ -556,6 +556,9 @@ StandardError=inherit
 Restart=always
 User=root
 
+# Check open files and restart if it reached the limit (ulimit -n buffer of 1000)
+ExecStartPost=/bin/bash -c 'FILE_LIMIT=$(ulimit -n); THRESHOLD=$(( FILE_LIMIT - 1000 )); while :; do TOTAL_OPEN_FILES=$(lsof | wc -l); if [ "$TOTAL_OPEN_FILES" -ge "$THRESHOLD>
+
 [Install]
 WantedBy=multi-user.target
 ```
