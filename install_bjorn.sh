@@ -596,6 +596,9 @@ main() {
             ;;
     esac
 
+    #removed git files
+    find "$BJORN_PATH" -name ".git*" -exec rm -rf {} +
+
     log "SUCCESS" "BJORN installation completed!"
     log "INFO" "Please reboot your system to apply all changes."
     echo -e "\n${GREEN}Installation completed successfully!${NC}"
