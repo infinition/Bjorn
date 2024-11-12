@@ -292,9 +292,17 @@ Once launched, Bjorn performs the following steps:
 
 ---
 
+
+
+
 [↖️](#table-of-contents) 
 ## Installation and Configuration
+Use Raspberry Pi Imager to install your OS
+https://www.raspberrypi.com/software/
+
 ### Prerequisites
+
+![image](https://github.com/user-attachments/assets/e775f454-1771-4d6c-bff5-b262b3d98452)
 
 - Raspberry Pi OS installed. 
     - Stable:
@@ -306,6 +314,13 @@ Once launched, Bjorn performs the following steps:
 
 At the moment the paper screen v2 & v4 have been tested and implemented.
 I juste hope the V1 & V3 will work the same.
+
+### Need help ? You struggle to find Bjorn's IP after the installation ?
+Use my Bjorn Detector & SSH Launcher :
+
+https://github.com/infinition/Bjorn_Detector
+
+![ezgif-1-a310f5fe8f](https://github.com/user-attachments/assets/182f82f0-5c3a-48a9-a75e-37b9cfa2263a)
 
 [↖️](#table-of-contents) 
 ### Quick Installation
