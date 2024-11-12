@@ -255,8 +255,10 @@ root hard nofile 65535
 EOF
 
     # Configure systemd limits
-    sed -i 's/#DefaultLimitNOFILE=/DefaultLimitNOFILE=65535/' /etc/systemd/system.conf
-    sed -i 's/#DefaultLimitNOFILE=/DefaultLimitNOFILE=65535/' /etc/systemd/user.conf
+    sed -i '/^#DefaultLimitNOFILE=/d' /etc/systemd/system.conf
+    echo "DefaultLimitNOFILE=65535" >> /etc/systemd/system.conf
+    sed -i '/^#DefaultLimitNOFILE=/d' /etc/systemd/user.conf
+    echo "DefaultLimitNOFILE=65535" >> /etc/systemd/user.conf
 
     # Create /etc/security/limits.d/90-nofile.conf
     cat > /etc/security/limits.d/90-nofile.conf << EOF
