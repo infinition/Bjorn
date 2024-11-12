@@ -536,6 +536,7 @@ main() {
     echo "2. epd2in13_V2"
     echo "3. epd2in13_V3"
     echo "4. epd2in13_V4"
+    echo "5. epd2in7"
     
     while true; do
         read -p "Enter your choice (1-4): " epd_choice
@@ -544,6 +545,7 @@ main() {
             2) EPD_VERSION="epd2in13_V2"; break;;
             3) EPD_VERSION="epd2in13_V3"; break;;
             4) EPD_VERSION="epd2in13_V4"; break;;
+            5) EPD_VERSION="epd2in7"; break;;
             *) echo -e "${RED}Invalid choice. Please select 1-4.${NC}";;
         esac
     done
