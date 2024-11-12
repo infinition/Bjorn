@@ -20,6 +20,7 @@ import random
 import time
 import csv
 import logging
+import subprocess
 from PIL import Image, ImageFont 
 from logger import Logger
 from epd_helper import EPDHelper
@@ -35,6 +36,7 @@ class SharedData:
         self.last_comment_time = time.time() # Last time a comment was displayed
         self.default_config = self.get_default_config() # Default configuration of the application  
         self.config = self.default_config.copy() # Configuration of the application
+        self.add_local_mac_to_blacklist()  # Add this new line to call our new function
         self.setup_environment() # Setup the environment
         self.initialize_variables() # Initialize the variables used by the application
         self.create_livestatusfile() 
@@ -136,13 +138,13 @@ class SharedData:
             "success_retry_delay": 900, 
             "ref_width" :122 ,
             "ref_height" : 250,
-            "epd_type": "epd2in13_V2",
+            "epd_type": "epd2in13_V4",
             
             
             "__title_lists__": "List Settings",
             "portlist": [20, 21, 22, 23, 25, 53, 69, 80, 110, 111, 135, 137, 139, 143, 161, 162, 389, 443, 445, 512, 513, 514, 587, 636, 993, 995, 1080, 1433, 1521, 2049, 3306, 3389, 5000, 5001, 5432, 5900, 8080, 8443, 9090, 10000],
-            "mac_scan_blacklist": ['00:11:32:c4:71:9b', '00:11:32:c4:71:9a'],
-            "ip_scan_blacklist": ['192.168.1.1', '192.168.1.12', '192.168.1.38','192.168.1.53', '192.168.1.40' , '192.168.1.29'],
+            "mac_scan_blacklist": [],
+            "ip_scan_blacklist": [],
             "steal_file_names": ["ssh.csv","hack.txt"],
             "steal_file_extensions": [".bjorn",".hack",".flag"],
             
@@ -159,6 +161,47 @@ class SharedData:
             "timewait_sql": 0,
             "timewait_rdp": 0,
         }
+
+
+    def get_raspberry_mac(self):
+        """Get the MAC address of the primary network interface (usually wlan0 or eth0)."""
+        try:
+            # First try wlan0 (wireless interface)
+            result = subprocess.run(['cat', '/sys/class/net/wlan0/address'], 
+                                 capture_output=True, text=True)
+            if result.returncode == 0 and result.stdout.strip():
+                return result.stdout.strip().lower()
+            
+            # If wlan0 fails, try eth0 (ethernet interface)
+            result = subprocess.run(['cat', '/sys/class/net/eth0/address'], 
+                                 capture_output=True, text=True)
+            if result.returncode == 0 and result.stdout.strip():
+                return result.stdout.strip().lower()
+            
+            logger.warning("Could not find MAC address for wlan0 or eth0")
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting Raspberry Pi MAC address: {e}")
+            return None
+
+    def add_local_mac_to_blacklist(self):
+        """Add the Raspberry Pi's MAC address to the blacklist if not already present."""
+        mac_address = self.get_raspberry_mac()
+        if mac_address:
+            if 'mac_scan_blacklist' not in self.config:
+                self.config['mac_scan_blacklist'] = []
+            
+            if mac_address not in self.config['mac_scan_blacklist']:
+                self.config['mac_scan_blacklist'].append(mac_address)
+                logger.info(f"Added local MAC address {mac_address} to blacklist")
+                self.save_config()  # Save the updated configuration
+            else:
+                logger.info(f"Local MAC address {mac_address} already in blacklist")
+        else:
+            logger.warning("Could not add local MAC to blacklist: MAC address not found")
+
+
 
     def setup_environment(self):
         """Setup the environment with the necessary directories and files."""
