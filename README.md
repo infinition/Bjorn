@@ -1,20 +1,20 @@
-# Bjorn
+# <img src="https://github.com/user-attachments/assets/c5eb4cc1-0c3d-497d-9422-1614651a84ab" alt="thumbnail_IMG_0546" width="33"> Bjorn
+
+[![Reddit](https://img.shields.io/badge/Reddit-Bjorn__CyberViking-orange?style=for-the-badge&logo=reddit)](https://www.reddit.com/r/Bjorn_CyberViking)
+[![Discord](https://img.shields.io/badge/Discord-Join%20Us-7289DA?style=for-the-badge&logo=discord)](https://discord.com/invite/B3ZH9taVfT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/c5eb4cc1-0c3d-497d-9422-1614651a84ab" alt="thumbnail_IMG_0546" width="150">
   <img src="https://github.com/user-attachments/assets/1b490f07-f28e-4418-8d41-14f1492890c6" alt="bjorn_epd-removebg-preview" width="150">
 </p>
 
-## Join Our Community 
-
-[![Reddit](https://img.shields.io/badge/Reddit-Bjorn__CyberViking-orange?style=for-the-badge&logo=reddit)](https://www.reddit.com/r/Bjorn_CyberViking)
-[![Discord](https://img.shields.io/badge/Discord-Join%20Us-7289DA?style=for-the-badge&logo=discord)](https://discord.com/invite/B3ZH9taVfT)
+Bjorn is a « Tamagotchi like » sophisticated, autonomous network scanning, vulnerability assessment, and offensive security tool designed to run on a Raspberry Pi equipped with a 2.13-inch e-Paper HAT. This document provides a detailed explanation of the project.
 
 
-## Table of Contents
+## 📚 Table of Contents
 
-- [Introduction](#introduction)
-- [Features](#features)
+- [Features](#-features)
 - [Design](#design)
 - [Educational Aspects](#educational-aspects)
 - [Disclaimer](#disclaimer)
@@ -58,18 +58,10 @@
 - [Contributing](#contributing)
 - [Support and Contact](#support-and-contact)
 - [Conclusion](#conclusion)
-- [License](#license)
-- [Contact](#contact)
+- [License](#-license)
+- [Contact](#-contact)
 
----
-
-[↖️](#table-of-contents) 
-## Introduction
-
-Bjorn is a « Tamagotchi like » sophisticated, autonomous network scanning, vulnerability assessment, and offensive security tool designed to run on a Raspberry Pi equipped with a 2.13-inch e-Paper HAT. This document provides a detailed explanation of the project.
-
-[↖️](#table-of-contents) 
-## Features
+## 🌟 Features
 
 - **Network Scanning**: Identifies live hosts and open ports on the network.
 - **Vulnerability Assessment**: Performs vulnerability scans using Nmap and other tools.
@@ -985,21 +977,16 @@ Bjorn is a powerful tool designed to perform comprehensive network scanning, vul
 
 The e-Paper HAT display and web interface make it easy to monitor and interact with Bjorn, providing real-time updates and status information. With its extensible architecture and customizable actions, Bjorn can be adapted to suit a wide range of security testing and monitoring needs.
 
-[↖️](#table-of-contents) 
-## License
-
-Bjorn is distributed under the MIT License. See the `LICENSE` file for more information.
-
----
-
-[↖️](#table-of-contents) 
-## Contact
+## 📫 Contact
 
 - **Author**: infinition
 - **GitHub**: [infinition/Bjorn](https://github.com/infinition/Bjorn)
 
 ---
 
-**Note**: This document is subject to change as the project evolves. Please refer to the GitHub repository for the most recent updates.
+## 📜 License
+
+2024 - Bjorn is distributed under the MIT License. For more details, please refer to the [LICENSE](LICENSE) file included in this repository.
 
 ---
+**Note**: This document is subject to change as the project evolves. Please refer to the GitHub repository for the most recent updates.
