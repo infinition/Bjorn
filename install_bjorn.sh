@@ -546,7 +546,7 @@ main() {
             3) EPD_VERSION="epd2in13_V3"; break;;
             4) EPD_VERSION="epd2in13_V4"; break;;
             5) EPD_VERSION="epd2in7"; break;;
-            *) echo -e "${RED}Invalid choice. Please select 1-4.${NC}";;
+            *) echo -e "${RED}Invalid choice. Please select 1-5.${NC}";;
         esac
     done
 
