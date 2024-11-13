@@ -36,12 +36,12 @@ class SharedData:
         self.last_comment_time = time.time() # Last time a comment was displayed
         self.default_config = self.get_default_config() # Default configuration of the application  
         self.config = self.default_config.copy() # Configuration of the application
-        self.add_local_mac_to_blacklist()  # Add this new line to call our new function
         self.setup_environment() # Setup the environment
         self.initialize_variables() # Initialize the variables used by the application
         self.create_livestatusfile() 
         self.load_fonts() # Load the fonts used by the application
         self.load_images() # Load the images used by the application
+        self.add_local_mac_to_blacklist()  # Add this new line to call our new function
         # self.create_initial_image() # Create the initial image displayed on the screen
 
     def initialize_paths(self):
@@ -213,31 +213,6 @@ class SharedData:
         self.initialize_epd_display()
     
 
-    # def initialize_epd_display(self):
-    #     """Initialize the e-paper display."""
-    #     try:
-    #         logger.info("Initializing EPD display...")
-    #         time.sleep(1)
-    #         self.epd_helper = EPDHelper(self.config["epd_type"])
-    #         self.epd_helper = EPDHelper(self.epd_type)
-    #         if self.config["epd_type"] == "epd2in13_V2":
-    #             logger.info("EPD type: epd2in13_V2 screen reversed")
-    #             self.screen_reversed = False
-    #             self.web_screen_reversed = False
-    #         elif self.config["epd_type"] == "epd2in13_V3":
-    #             logger.info("EPD type: epd2in13_V3 screen reversed")
-    #             self.screen_reversed = False
-    #             self.web_screen_reversed = False
-    #         elif self.config["epd_type"] == "epd2in13_V4":
-    #             logger.info("EPD type: epd2in13_V4 screen reversed")
-    #             self.screen_reversed = True
-    #             self.web_screen_reversed = True
-    #         self.epd_helper.init_full_update()
-    #         self.width, self.height = self.epd_helper.epd.width, self.epd_helper.epd.height
-    #         logger.info(f"EPD {self.config['epd_type']} initialized with size: {self.width}x{self.height}")
-    #     except Exception as e:
-    #         logger.error(f"Error initializing EPD display: {e}")
-    #         raise
     def initialize_epd_display(self):
         """Initialize the e-paper display."""
         try:
@@ -249,10 +224,14 @@ class SharedData:
                 logger.info("EPD type: epd2in7 screen reversed")
                 self.screen_reversed = False
                 self.web_screen_reversed = False
-            if self.config["epd_type"] == "epd2in13_V2":
+            elif self.config["epd_type"] == "epd2in13_V2":
                 logger.info("EPD type: epd2in13_V2 screen reversed")
                 self.screen_reversed = False
                 self.web_screen_reversed = False
+            elif self.config["epd_type"] == "epd2in13_V3":
+                logger.info("EPD type: epd2in13_V3 screen reversed")
+                self.screen_reversed = True
+                self.web_screen_reversed = True
             elif self.config["epd_type"] == "epd2in13_V4":
                 logger.info("EPD type: epd2in13_V4 screen reversed")
                 self.screen_reversed = True
