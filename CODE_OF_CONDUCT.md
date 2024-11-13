@@ -23,7 +23,7 @@ We are committed to fostering an open and welcoming environment for all contribu
 
 ## 📢 Reporting Misconduct
 
-If you encounter any behavior that violates this code of conduct, please report it by contacting [email@dominio.com](mailto:email@dominio.com). All complaints will be reviewed and handled appropriately.
+If you encounter any behavior that violates this code of conduct, please report it by contacting [bjorn-cyberviking@outlook.com](bjorn-cyberviking@outlook.com). All complaints will be reviewed and handled appropriately.
 
 ## ⚖️ Enforcement
 
