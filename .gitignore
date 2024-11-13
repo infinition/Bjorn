@@ -1,0 +1,137 @@
+# Node.js / npm
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+package-lock.json*
+
+# TypeScript / TSX
+dist/
+*.tsbuildinfo
+
+# Poetry
+poetry.lock
+
+# Environment variables
+.env
+.env.*.local
+
+# Logs
+logs
+*.log
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Output of 'npm pack'
+*.tgz
+
+# Lockfiles
+yarn.lock
+.pnpm-lock.yaml
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Coverage directory used by tools like
+instanbul/
+istanbul/jest
+jest/
+coverage/
+
+# Output of 'tsc' command
+out/
+build/
+tmp/
+temp/
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+pip-wheel-metadata/
+*.pyo
+*.pyd
+*.whl
+*.pytest_cache/
+.tox/
+env/
+venv
+venv/
+ENV/
+env.bak/
+.venv/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Coverage reports
+htmlcov/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Django stuff:
+staticfiles/
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# VS Code settings
+.vscode/
+.idea/
+
+# macOS files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux system files
+*.swp
+*~
+
+# IDE specific
+*.iml
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+scripts
+*/certs/
