@@ -1,8 +1,19 @@
-## Installation and Configuration
+## 🔧 Installation and Configuration
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/c5eb4cc1-0c3d-497d-9422-1614651a84ab" alt="thumbnail_IMG_0546" width="98">
+</p>
+
+## 📚 Table of Contents
+
+- [Prerequisites](#-prerequisites)
+- [Quick Install](#-quick-install)
+- [Manual Install](#-manual-install)
+
 Use Raspberry Pi Imager to install your OS
 https://www.raspberrypi.com/software/
 
-### Prerequisites
+### 📌 Prerequisites
 
 ![image](https://github.com/user-attachments/assets/e775f454-1771-4d6c-bff5-b262b3d98452)
 
@@ -17,7 +28,7 @@ https://www.raspberrypi.com/software/
 At the moment the paper screen v2 & v4 have been tested and implemented.
 I juste hope the V1 & V3 will work the same.
  
-### Quick Installation
+### ⚡ Quick Install
 
 The fastest way to install Bjorn is using the automatic installation script :
 
@@ -29,7 +40,7 @@ sudo ./install_bjorn.sh
 # Choose the choice 1 for automatic installation. It may take a while as a lot of packages and modules will be installed. You must reboot at the end.
 ```
 
-### Manual Installation
+### 🧰 Manual Install
 
 #### Step 1: Activate SPI & I2C
 
