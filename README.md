@@ -72,7 +72,7 @@ sudo chmod +x install_bjorn.sh && sudo ./install_bjorn.sh
 
 ### 📦 Update
 
-Bjorn can be updated by a simple exec of new binaries **without delete files described on [Fresh Installation](DEVELOPMENT#-fresh-start)**.
+Bjorn can be updated by a simple exec of new binaries **without delete files described on [Fresh Installation](DEVELOPMENT.md#-fresh-start)**.
 
 ```bash
 # Download and run the installer
