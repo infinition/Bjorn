@@ -36,7 +36,11 @@ class SharedData:
         self.last_comment_time = time.time() # Last time a comment was displayed
         self.default_config = self.get_default_config() # Default configuration of the application  
         self.config = self.default_config.copy() # Configuration of the application
-        self.add_local_mac_to_blacklist()  # Add this new line to call our new function
+        # Load existing configuration first
+        self.load_config()
+
+        # Update MAC blacklist without immediate save
+        self.update_mac_blacklist()
         self.setup_environment() # Setup the environment
         self.initialize_variables() # Initialize the variables used by the application
         self.create_livestatusfile() 
@@ -162,6 +166,22 @@ class SharedData:
             "timewait_rdp": 0,
         }
 
+    def update_mac_blacklist(self):
+        """Update the MAC blacklist without immediate save."""
+        mac_address = self.get_raspberry_mac()
+        if mac_address:
+            if 'mac_scan_blacklist' not in self.config:
+                self.config['mac_scan_blacklist'] = []
+            
+            if mac_address not in self.config['mac_scan_blacklist']:
+                self.config['mac_scan_blacklist'].append(mac_address)
+                logger.info(f"Added local MAC address {mac_address} to blacklist")
+            else:
+                logger.info(f"Local MAC address {mac_address} already in blacklist")
+        else:
+            logger.warning("Could not add local MAC to blacklist: MAC address not found")
+
+
 
     def get_raspberry_mac(self):
         """Get the MAC address of the primary network interface (usually wlan0 or eth0)."""
@@ -185,28 +205,12 @@ class SharedData:
             logger.error(f"Error getting Raspberry Pi MAC address: {e}")
             return None
 
-    def add_local_mac_to_blacklist(self):
-        """Add the Raspberry Pi's MAC address to the blacklist if not already present."""
-        mac_address = self.get_raspberry_mac()
-        if mac_address:
-            if 'mac_scan_blacklist' not in self.config:
-                self.config['mac_scan_blacklist'] = []
-            
-            if mac_address not in self.config['mac_scan_blacklist']:
-                self.config['mac_scan_blacklist'].append(mac_address)
-                logger.info(f"Added local MAC address {mac_address} to blacklist")
-                self.save_config()  # Save the updated configuration
-            else:
-                logger.info(f"Local MAC address {mac_address} already in blacklist")
-        else:
-            logger.warning("Could not add local MAC to blacklist: MAC address not found")
-
 
 
     def setup_environment(self):
         """Setup the environment with the necessary directories and files."""
         os.system('cls' if os.name == 'nt' else 'clear')
-        self.load_config()
+        self.save_config()
         self.generate_actions_json()
         self.delete_webconsolelog()
         self.initialize_csv()
@@ -249,10 +253,14 @@ class SharedData:
                 logger.info("EPD type: epd2in7 screen reversed")
                 self.screen_reversed = False
                 self.web_screen_reversed = False
-            if self.config["epd_type"] == "epd2in13_V2":
+            elif self.config["epd_type"] == "epd2in13_V2":
                 logger.info("EPD type: epd2in13_V2 screen reversed")
                 self.screen_reversed = False
                 self.web_screen_reversed = False
+            elif self.config["epd_type"] == "epd2in13_V3":
+                logger.info("EPD type: epd2in13_V3 screen reversed")
+                self.screen_reversed = True
+                self.web_screen_reversed = True
             elif self.config["epd_type"] == "epd2in13_V4":
                 logger.info("EPD type: epd2in13_V4 screen reversed")
                 self.screen_reversed = True
