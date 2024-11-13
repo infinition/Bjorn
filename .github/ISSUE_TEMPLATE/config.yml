@@ -1,0 +1,11 @@
+---
+# .github/ISSUE_TEMPLATE/config.yml
+
+blank_issues_enabled: false
+contact_links:
+  - name: Bjorn Community Support
+    url: https://github.com/infinition/bjorn/discussions
+    about: Please ask and answer questions here.
+  - name: Bjorn Security Reports
+    url: https://infinition.github.io/bjorn/SECURITY
+    about: Please report security vulnerabilities here.
