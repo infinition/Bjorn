@@ -95,6 +95,8 @@ The project welcomes contributions in:
 - Documentation.
 - Feature improvements.
 
+For **detailed information** about contributing process go to [Contributing Docs](CONTRIBUTING.md), [Code Of Conduct](CODE_OF_CONDUCT.md) and [Development Guide](DEVELOPMENT.md).
+
 ## 📫 Contact
 
 - **Report Issues**: Via GitHub.
