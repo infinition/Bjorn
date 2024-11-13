@@ -1,37 +1,71 @@
-# Bjorn Development
+# 🖲️ Bjorn Development
 
-## Design
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/c5eb4cc1-0c3d-497d-9422-1614651a84ab" alt="thumbnail_IMG_0546" width="98">
+</p>
+
+## 📚 Table of Contents
+
+- [Design](#-design)
+- [Educational Aspects](#-educational-aspects)
+- [Disclaimer](#-disclaimer)
+- [Extensibility](#-extensibility)
+- [Development Status](#-development-status)
+  - [Project Structure](#-project-structure)
+  - [Core Files](#-core-files)
+  - [Actions](#-actions)
+  - [Data Structure](#-data-structure)
+- [Detailed Project Description](#-detailed-project-description)
+  - [Behaviour of Bjorn](#-behavior-of-bjorn)
+- [Running Bjorn](#-running-bjorn)
+  - [Manual Start](#-manual-start)
+  - [Service Control](#-service-control)
+  - [Fresh Start](#-fresh-start)
+- [Important Configuration Files](#-important-configuration-files)
+  - [Shared Configuration](#-shared-configuration-shared_configjson)
+  - [Actions Configuration](#-actions-configuration-actionsjson)
+- [E-Paper Display Support](#-e-paper-display-support)
+  - [Ghosting Removed](#-ghosting-removed)
+- [Development Guidelines](#-development-guidelines)
+  - [Adding New Actions](#-adding-new-actions)
+  - [Testing](#-testing)
+- [Web Interface](#-web-interface)
+- [Project Roadmap](#-project-roadmap)
+  - [Current Focus](#-future-plans)
+  - [Future Plans](#-future-plans)
+- [License](#-license)
+
+## 🎨 Design
 
 - **Portability**: Self-contained and portable device, ideal for penetration testing.
 - **Modularity**: Extensible architecture allowing  addition of new actions.
 - **Visual Interface**: The e-Paper HAT provides a visual interface for monitoring the ongoing actions, displaying results or stats, and interacting with Bjorn .
 
-## Educational Aspects
+## 📔 Educational Aspects
 
 - **Learning Tool**: Designed as an educational tool to understand cybersecurity concepts and penetration testing techniques.
 - **Practical Experience**: Provides a practical means for students and professionals to familiarize themselves with network security practices and vulnerability assessment tools.
 
-## Disclaimer
+## ✒️ Disclaimer
 
 - **Ethical Use**: This project is strictly for educational purposes.
 - **Responsibility**: The author and contributors disclaim any responsibility for misuse of Bjorn.
 - **Legal Compliance**: Unauthorized use of this tool for malicious activities is prohibited and may be prosecuted by law.
 
-## Extensibility
+## 🧩 Extensibility
 
 - **Evolution**: The main purpose of Bjorn is to gain new actions and extend his arsenal over time.
 - **Modularity**: Actions are designed to be modular and can be easily extended or modified to add new functionality.
 - **Possibilities**: From capturing pcap files to cracking hashes, man-in-the-middle attacks, and more—the possibilities are endless.
 - **Contribution**: It's up to the user to develop new actions and add them to the project.
 
-## Development Status
+## 🔦 Development Status
 
 - **Project Status**: Ongoing development.
 - **Current Version**: Scripted  auto-installer, or manual installation. Not yet packaged with Raspberry Pi OS.
 - **Reason**: The project is still in an early stage, requiring further development and debugging.
 
-
-### Project Structure
+### 🗂️ Project Structure
 
 ```
 Bjorn/
@@ -82,8 +116,7 @@ Bjorn/
     └── waveshare_epd/
 ```
 
-[↖️](#table-of-contents) 
-### Core Files
+### ⚓ Core Files
 
 #### Bjorn.py
 
@@ -107,7 +140,7 @@ Defines a custom logger with specific formatting and handlers for console and fi
 
 #### orchestrator.py
 
-Bjorn’s AI, an heuristic engine that orchestrates the different actions such as network scanning, vulnerability scanning, attacks, and file stealing. It loads and executes actions based on the configuration and sets the status of the actions and Bjorn. 
+Bjorn’s AI, a heuristic engine that orchestrates the different actions such as network scanning, vulnerability scanning, attacks, and file stealing. It loads and executes actions based on the configuration and sets the status of the actions and Bjorn. 
 
 #### shared.py
 
@@ -125,8 +158,7 @@ Contains utility functions used throughout the project.
 
 Sets up and runs a web server to provide a web interface for changing settings, monitoring and interacting with Bjorn.
 
-[↖️](#table-of-contents) 
-### Actions
+### ▶️ Actions
 
 #### actions/scanning.py
 
@@ -152,9 +184,8 @@ Performs vulnerability scanning using Nmap. It parses the results and updates th
 - **steal_files_ssh.py**: Steals files from SSH servers.
 - **steal_files_telnet.py**: Steals files from Telnet servers.
 - **steal_data_sql.py**: Extracts data from SQL databases.
-
-[↖️](#table-of-contents) 
-### Data Structure
+ 
+### 📇 Data Structure
 
 #### Network Knowledge Base (netkb.csv)
 
@@ -187,9 +218,9 @@ Contains real-time information displayed on the e-Paper HAT:
 - Open ports count.
 - Other runtime statistics.
 
-## Detailed Project Description
+## 📖 Detailed Project Description
 
-### Behavior of Bjorn
+### 👀 Behavior of Bjorn
 
 Once launched, Bjorn performs the following steps:
 
@@ -201,9 +232,9 @@ Once launched, Bjorn performs the following steps:
 6. **Display Updates**: Continuously updates the e-Paper HAT display with current information such as network status, vulnerabilities, and various statistics. Bjorn also displays random comments based on different themes and statuses.
 7. **Web Server**: Provides a web interface for monitoring and interacting with Bjorn.
 
-## Running Bjorn
+## ▶️ Running Bjorn
 
-### Manual Start
+### 📗 Manual Start
 
 To manually start Bjorn (without the service, ensure the service is  stopped « sudo systemctl stop bjorn.service »):
 
@@ -214,8 +245,7 @@ cd /home/bjorn/Bjorn
 sudo python Bjorn.py
 ```
 
-
-### Service Control
+### 🕹️ Service Control
 
 Control the Bjorn service:
 
@@ -233,7 +263,7 @@ sudo systemctl status bjorn.service
 sudo journalctl -u bjorn.service
 ```
 
-### Fresh Start
+### 🪄 Fresh Start
 
 To reset Bjorn to a clean state:
 
@@ -261,9 +291,9 @@ sudo rm -rf /home/bjorn/Bjorn/config/*.json \
 
 Everything will be recreated automatically at the next launch of Bjorn.
 
-## Important Configuration Files
+## ❇️ Important Configuration Files
 
-### Shared Configuration (`shared_config.json`)
+### 🔗 Shared Configuration (`shared_config.json`)
 
 Defines various settings for Bjorn, including:
 
@@ -273,7 +303,7 @@ Defines various settings for Bjorn, including:
 - Port lists and blacklists.
 These settings are accessible on the webpage.
 
-### Actions Configuration (`actions.json`)
+### 🛠️ Actions Configuration (`actions.json`)
 
 Lists the actions to be performed by Bjorn, including (dynamically generated with the content of the folder):
 
@@ -282,20 +312,20 @@ Lists the actions to be performed by Bjorn, including (dynamically generated wit
 - Parent-child relationships.
 - Action status definitions.
 
-## E-Paper Display Support
+## 📟 E-Paper Display Support
 
-Currently hardcoded for the 2.13-inch V2 & V4 e-Paper HAT. 
+Currently, hardcoded for the 2.13-inch V2 & V4 e-Paper HAT. 
 My program automatically detect the screen model and adapt the python expressions into my code.
 
 For other versions:
-- As i dont have the v1 and v3 to validate my algorithm, i just hope it will work properly.
+- As I don't have the v1 and v3 to validate my algorithm, I just hope it will work properly.
 
-### Ghosting removed ! 🍾
+### 🍾 Ghosting Removed!
 In my journey to make Bjorn work with the different screen versions, I struggled, hacking several parameters and found out that it was possible to remove the ghosting of screens! I let you see this, I think this method will be very useful for all other projects with the e-paper screen!
 
-## Development Guidelines
+## ✍️ Development Guidelines
 
-### Adding New Actions
+### ➕ Adding New Actions
 
 1. Create a new action file in `actions/`.
 2. Implement required methods:
@@ -304,14 +334,14 @@ In my journey to make Bjorn work with the different screen versions, I struggled
 3. Add the action to `actions.json`.
 4. Follow existing action patterns.
 
-### Testing
+### 🧪 Testing
 
 1. Create a test environment.
 2. Use an isolated network.
 3. Follow ethical guidelines.
 4. Document test cases.
 
-## Web Interface
+## 💻 Web Interface
 
 - **Access**: `http://[device-ip]:8000`
 - **Features**:
@@ -320,16 +350,16 @@ In my journey to make Bjorn work with the different screen versions, I struggled
   - Viewing results. (Credentials and files)
   - System control.
 
-## Project Roadmap
+## 🧭 Project Roadmap
 
-### Current Focus
+### 🪛 Current Focus
 
 - Stability improvements.
 - Bug fixes.
 - Service reliability.
 - Documentation updates.
 
-### Future Plans
+### 🧷 Future Plans
 
 - Additional attack modules.
 - Enhanced reporting.

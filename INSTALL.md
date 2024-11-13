@@ -9,6 +9,7 @@
 - [Prerequisites](#-prerequisites)
 - [Quick Install](#-quick-install)
 - [Manual Install](#-manual-install)
+- [License](#-license)
 
 Use Raspberry Pi Imager to install your OS
 https://www.raspberrypi.com/software/

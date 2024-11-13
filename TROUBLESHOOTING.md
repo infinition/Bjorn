@@ -1,8 +1,18 @@
-## Known Issues and Troubleshooting
+# 🐛 Known Issues and Troubleshooting
 
-### Current Development Issues
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/c5eb4cc1-0c3d-497d-9422-1614651a84ab" alt="thumbnail_IMG_0546" width="98">
+</p>
 
-#### 1. Long Runtime Issue
+## 📚 Table of Contents
+
+- [Current Development Issues](#-current-development-issues)
+- [Troubleshooting Steps](#-troubleshooting-steps)
+- [License](#-license)
+
+## 🪲 Current Development Issues
+
+### Long Runtime Issue
 
 - **Problem**: `OSError: [Errno 24] Too many open files`
 - **Status**: Partially resolved with system limits configuration.
@@ -10,9 +20,9 @@
 - **Monitoring**: Check open files with `lsof -p $(pgrep -f Bjorn.py) | wc -l`
 - At the moment the logs show periodically this information as (FD : XXX)
 
-### Troubleshooting Steps
+## 🛠️ Troubleshooting Steps
 
-#### 1. Service Issues
+### Service Issues
 
 ```bash
 # Check service status
@@ -25,7 +35,7 @@ sudo journalctl -u bjorn.service -f
 sudo lsof -i :8000
 ```
 
-#### 2. Display Issues
+### Display Issues
 
 ```bash
 # Verify SPI devices
@@ -35,7 +45,7 @@ ls /dev/spi*
 sudo usermod -a -G spi,gpio bjorn
 ```
 
-#### 3. Network Issues
+### Network Issues
 
 ```bash
 # Check network interfaces
@@ -45,7 +55,7 @@ ip addr show
 ip link show usb0
 ```
 
-#### 4. Permission Issues
+### Permission Issues
 
 ```bash
 # Fix ownership
