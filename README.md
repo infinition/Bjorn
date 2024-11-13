@@ -19,6 +19,7 @@ Bjorn is a « Tamagotchi like » sophisticated, autonomous network scanning, 
 - [Getting Started](#-getting-started)
   - [Prerequisites](#-prerequisites)
   - [Installation](#-Installation)
+  - [Update](#-update)
 - [Quick Start](#-quick-start)
 - [Usage Example](#-usage-example)
 - [Contributing](#-contributing)
@@ -65,9 +66,18 @@ The fastest way to install Bjorn is using the automatic installation script :
 ```bash
 # Download and run the installer
 wget https://raw.githubusercontent.com/infinition/Bjorn/refs/heads/main/install_bjorn.sh
-sudo chmod +x install_bjorn.sh
-sudo ./install_bjorn.sh
+sudo chmod +x install_bjorn.sh && sudo ./install_bjorn.sh
 # Choose the choice 1 for automatic installation. It may take a while as a lot of packages and modules will be installed. You must reboot at the end.
+```
+
+### 📦 Update
+
+Bjorn can be updated by a simple exec of new binaries without delete files described on [Fresh Installation](DEVELOPMENT#-fresh-start).
+
+```bash
+# Download and run the installer
+wget https://raw.githubusercontent.com/infinition/Bjorn/refs/heads/main/install_bjorn.sh
+sudo chmod +x install_bjorn.sh && sudo ./install_bjorn.sh
 ```
 
 ## ⚡ Quick Start
