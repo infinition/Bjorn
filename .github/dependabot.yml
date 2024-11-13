@@ -7,6 +7,6 @@ updates:
     schedule:
       interval: "weekly"
     commit-message:
-      prefix: "deps"
+      prefix: "fix(deps)"
     open-pull-requests-limit: 5
     target-branch: "dev"
