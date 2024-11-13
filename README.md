@@ -70,6 +70,8 @@ sudo chmod +x install_bjorn.sh && sudo ./install_bjorn.sh
 # Choose the choice 1 for automatic installation. It may take a while as a lot of packages and modules will be installed. You must reboot at the end.
 ```
 
+For **detailed information** about installation process go to [Install Guide](INSTALL.md)
+
 ## ⚡ Quick Start
 
 **Need help ? You struggle to find Bjorn's IP after the installation ?**
