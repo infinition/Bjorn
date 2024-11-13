@@ -45,9 +45,41 @@ The e-Paper HAT display and web interface make it easy to monitor and interact w
 
 ### 📌 Prerequisites
 
+![image](https://github.com/user-attachments/assets/e775f454-1771-4d6c-bff5-b262b3d98452)
+
+- Raspberry Pi OS installed. 
+    - Stable:
+      - System: 32-bit
+      - Kernel version: 6.6
+      - Debian version: 12 (bookworm) '2024-10-22-raspios-bookworm-armhf-lite'
+- Username and hostname set to `bjorn`.
+- 2.13-inch e-Paper HAT connected to GPIO pins.
+
+At the moment the paper screen v2 & v4 have been tested and implemented.
+I juste hope the V1 & V3 will work the same.
+
 ### 🔨 Installation
 
+The fastest way to install Bjorn is using the automatic installation script :
+
+```bash
+# Download and run the installer
+wget https://raw.githubusercontent.com/infinition/Bjorn/refs/heads/main/install_bjorn.sh
+sudo chmod +x install_bjorn.sh
+sudo ./install_bjorn.sh
+# Choose the choice 1 for automatic installation. It may take a while as a lot of packages and modules will be installed. You must reboot at the end.
+```
+
 ## ⚡ Quick Start
+
+**Need help ? You struggle to find Bjorn's IP after the installation ?**
+Use my Bjorn Detector & SSH Launcher :
+
+https://github.com/infinition/Bjorn_Detector
+
+![ezgif-1-a310f5fe8f](https://github.com/user-attachments/assets/182f82f0-5c3a-48a9-a75e-37b9cfa2263a)
+
+**Quick Installation**: you can use the fastest way to install Bjorn [Getting Started](#-getting-started)
 
 ## 💡 Usage Example
 
