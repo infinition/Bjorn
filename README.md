@@ -80,7 +80,7 @@ https://github.com/infinition/Bjorn_Detector
 
 ![ezgif-1-a310f5fe8f](https://github.com/user-attachments/assets/182f82f0-5c3a-48a9-a75e-37b9cfa2263a)
 
-**Hmm, You still need help?**
+**Hmm, You still need help ?**
 For **detailed information** about **troubleshooting** go to [Troubleshooting](TROUBLESHOOTING.md)
 
 **Quick Installation**: you can use the fastest way to install Bjorn [Getting Started](#-getting-started)
