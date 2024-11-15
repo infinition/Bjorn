@@ -17,7 +17,8 @@ Bjorn is a « Tamagotchi like » sophisticated, autonomous network scanning, 
 - [Introduction](#-introduction)
 - [Features](#-features)
 - [Getting Started](#-getting-started)
-  - [Prerequisites](#-prerequisites)
+  - [Prerequisites for RPI Zero W (32 bits)](#-prerequisites-for-rpi-zero-w-32-bits)
+  - [Prerequisites for RPI Zero W2 (64 bits)](#-prerequisites-for-rpi-zero-w2-64-bits)
   - [Installation](#-installation)
 - [Quick Start](#-quick-start)
 - [Usage Example](#-usage-example)
@@ -43,9 +44,8 @@ The e-Paper HAT display and web interface make it easy to monitor and interact w
 
 ## 🚀 Getting Started
 
-### 📌 Prerequisites
-
-![image](https://github.com/user-attachments/assets/e775f454-1771-4d6c-bff5-b262b3d98452)
+### 📌 Prerequisites for RPI zero W (32bits)
+![image](https://github.com/user-attachments/assets/3980ec5f-a8fc-4848-ab25-4356e0529639)
 
 - Raspberry Pi OS installed. 
     - Stable:
@@ -55,7 +55,22 @@ The e-Paper HAT display and web interface make it easy to monitor and interact w
 - Username and hostname set to `bjorn`.
 - 2.13-inch e-Paper HAT connected to GPIO pins.
 
-At the moment the paper screen v2 & v4 have been tested and implemented.
+### 📌 Prerequisites for RPI zero W2 (64bits)
+
+![image](https://github.com/user-attachments/assets/e8d276be-4cb2-474d-a74d-b5b6704d22f5)
+
+I did not develop Bjorn for the raspberry pi zero w2 64bits, but several feedbacks have attested that the installation worked perfectly.
+
+- Raspberry Pi OS installed. 
+    - Stable:
+      - System: 64-bit
+      - Kernel version: 6.6
+      - Debian version: 12 (bookworm) '2024-10-22-raspios-bookworm-arm64-lite'
+- Username and hostname set to `bjorn`.
+- 2.13-inch e-Paper HAT connected to GPIO pins.
+
+
+At the moment the paper screen v2  v4 have been tested and implemented.
 I juste hope the V1 & V3 will work the same.
 
 ### 🔨 Installation
