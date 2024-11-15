@@ -18,7 +18,7 @@ Bjorn is a « Tamagotchi like » sophisticated, autonomous network scanning, 
 - [Features](#-features)
 - [Getting Started](#-getting-started)
   - [Prerequisites](#-prerequisites)
-  - [Installation](#-Installation)
+  - [Installation](#-installation)
 - [Quick Start](#-quick-start)
 - [Usage Example](#-usage-example)
 - [Contributing](#-contributing)
@@ -85,9 +85,47 @@ For **detailed information** about **troubleshooting** go to [Troubleshooting](T
 
 **Quick Installation**: you can use the fastest way to install Bjorn [Getting Started](#-getting-started)
 
-## 💡 Usage Example
+## 💡 Usage Example 
 
-...
+Here's a demonstration of how Bjorn autonomously hunts through your network like a Viking raider (fake demo for illustration):
+
+```bash
+# Reconnaissance Phase
+[NetworkScanner] Discovering alive hosts...
+[+] Host found: 192.168.1.100
+    ├── Ports: 22,80,445,3306
+    └── MAC: 00:11:22:33:44:55
+
+# Attack Sequence 
+[NmapVulnScanner] Found vulnerabilities on 192.168.1.100
+    ├── MySQL 5.5 < 5.7 - User Enumeration
+    └── SMB - EternalBlue Candidate
+
+[SSHBruteforce] Cracking credentials...
+[+] Success! user:password123
+[StealFilesSSH] Extracting sensitive data...
+
+# Automated Data Exfiltration
+[SQLBruteforce] Database accessed!
+[StealDataSQL] Dumping tables...
+[SMBBruteforce] Share accessible
+[+] Found config files, credentials, backups...
+```
+
+This is just a demo output - actual results will vary based on your network and target configuration.
+
+All discovered data is automatically organized in the data/output/ directory, viewable through both the e-Paper display (as indicators) and web interface.
+Bjorn works tirelessly, expanding its network knowledge base and growing stronger with each discovery.
+
+No constant monitoring needed - just deploy and let Bjorn do what it does best: hunt for vulnerabilities.
+
+🔧 Expand Bjorn's Arsenal!
+Bjorn is designed to be a community-driven weapon forge. Create and share your own attack modules!
+
+⚠️ For educational and authorized testing purposes only ⚠️
+
+
+
 
 ## 🤝 Contributing
 
