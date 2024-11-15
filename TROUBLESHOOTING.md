@@ -25,11 +25,19 @@
 ### Service Issues
 
 ```bash
+#See bjorn journalctl service
+journalctl -fu bjorn.service
+
 # Check service status
 sudo systemctl status bjorn.service
 
 # View detailed logs
 sudo journalctl -u bjorn.service -f
+
+or
+
+sudo tail -f /home/bjorn/Bjorn/data/logs/*
+
 
 # Check port 8000 usage
 sudo lsof -i :8000
