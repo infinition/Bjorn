@@ -17,8 +17,7 @@ Bjorn is a « Tamagotchi like » sophisticated, autonomous network scanning, 
 - [Introduction](#-introduction)
 - [Features](#-features)
 - [Getting Started](#-getting-started)
-  - [Prerequisites for RPI Zero W (32 bits)](#-prerequisites-for-rpi-zero-w-32-bits)
-  - [Prerequisites for RPI Zero W2 (64 bits)](#-prerequisites-for-rpi-zero-w2-64-bits)
+  - [Prerequisites](#-prerequisites)
   - [Installation](#-installation)
 - [Quick Start](#-quick-start)
 - [Usage Example](#-usage-example)
@@ -43,7 +42,7 @@ The e-Paper HAT display and web interface make it easy to monitor and interact w
 ![Bjorn Display](https://github.com/infinition/Bjorn/assets/37984399/bcad830d-77d6-4f3e-833d-473eadd33921)
 
 ## 🚀 Getting Started
-
+## 📌 Prerequisites
 ### 📌 Prerequisites for RPI zero W (32bits)
 ![image](https://github.com/user-attachments/assets/3980ec5f-a8fc-4848-ab25-4356e0529639)
 
