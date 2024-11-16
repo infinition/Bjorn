@@ -90,7 +90,7 @@ For **detailed information** about installation process go to [Install Guide](IN
 **Need help ? You struggle to find Bjorn's IP after the installation ?**
 Use my Bjorn Detector & SSH Launcher :
 
-https://github.com/infinition/Bjorn_Detector
+[https://github.com/infinition/Bjorn_Detector](https://github.com/infinition/bjorn-detector)
 
 ![ezgif-1-a310f5fe8f](https://github.com/user-attachments/assets/182f82f0-5c3a-48a9-a75e-37b9cfa2263a)
 
