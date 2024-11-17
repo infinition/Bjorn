@@ -11,6 +11,8 @@ import netifaces
 import time
 import glob
 import logging
+import locale
+import subprocess
 from datetime import datetime
 from rich.console import Console
 from rich.table import Table
@@ -48,6 +50,173 @@ class NetworkScanner:
         self.semaphore = threading.Semaphore(200)  # Limit the number of active threads to 20
         self.nm = nmap.PortScanner()  # Initialize nmap.PortScanner()
         self.running = False
+        # Add locale handling
+        self.original_locale = locale.getlocale()
+
+    def _set_english_locale(self):
+        """Temporarily set locale to English for consistent parsing"""
+        try:
+            locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
+        except locale.Error:
+            try:
+                locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+            except locale.Error:
+                self.logger.warning("Failed to set English locale, using system default")
+                
+    def _restore_locale(self):
+        """Restore the original system locale"""
+        try:
+            locale.setlocale(locale.LC_ALL, self.original_locale)
+        except locale.Error:
+            self.logger.warning("Failed to restore original locale")
+
+    def _scan_wifi(self):
+        """Scan WiFi networks with consistent locale handling"""
+        networks = []
+        try:
+            output = subprocess.check_output(
+                ['iwlist', 'wlan0', 'scan'], 
+                stderr=subprocess.STDOUT,
+                universal_newlines=True
+            )
+            
+            current_network = {}
+            for line in output.split('\n'):
+                line = line.strip()
+                
+                if 'Cell' in line:
+                    if current_network:
+                        networks.append(current_network)
+                    current_network = {'Alive': '1'}
+                    mac = line.split('Address:')[-1].strip()
+                    current_network['MAC Address'] = mac
+                    
+                elif 'ESSID' in line:
+                    essid = line.split('"')[1]
+                    current_network['Hostnames'] = essid
+                    
+                elif 'Frequency' in line:
+                    freq = line.split(':')[1].split(' ')[0]
+                    current_network['Frequency'] = freq
+                    
+                elif 'Quality' in line:
+                    quality = line.split('=')[1].split('/')[0]
+                    current_network['Quality'] = quality
+
+            if current_network:
+                networks.append(current_network)
+                
+        except subprocess.CalledProcessError as e:
+            self.logger.error(f"WiFi scanning failed: {e}")
+            self.logger.error(f"Command output: {e.output}")
+            
+        return networks
+    
+    def _scan_wifi_with_fallback(self):
+        locales_to_try = ['en_GB.UTF-8', 'en_US.UTF-8', 'C']
+        for locale in locales_to_try:
+            try:
+                os.environ['LC_ALL'] = locale
+                return self._scan_wifi()
+            except Exception as e:
+                self.logger.warning(f"WiFi scan failed with locale {locale}: {e}")
+                self.logger.error("WiFi scanning failed with all attempted locales")
+        return []
+
+    def update_wifi_data(self, netkb_data, alive_macs):
+        """Update network knowledge base with WiFi data"""
+        try:
+            # Set English locale for WiFi scanning
+            self._set_english_locale()
+            
+            # Scan WiFi networks
+            wifi_networks = self._scan_wifi()
+            
+            # Add WiFi networks to netkb_data
+            for network in wifi_networks:
+                mac = network['MAC Address']
+                hostname = network['Hostnames']
+                
+                # Skip blacklisted MACs
+                if self.blacklistcheck and mac in self.mac_scan_blacklist:
+                    continue
+                    
+                # Add to alive_macs set
+                alive_macs.add(mac)
+                
+                # Add to netkb_data with empty IP and ports (WiFi networks don't have these)
+                netkb_data.append([mac, '', hostname, []])
+                
+        except Exception as e:
+            self.logger.error(f"Error updating WiFi data: {e}")
+            
+        finally:
+            # Restore original locale
+            self._restore_locale()
+
+    def scan(self):
+        """
+        Initiates the network scan, including WiFi networks, updates the netkb file, and displays the results.
+        """
+        try:
+            self.shared_data.bjornorch_status = "NetworkScanner"
+            self.logger.info(f"Starting Network Scanner")
+            network = self.get_network()
+            self.shared_data.bjornstatustext2 = str(network)
+            portstart = self.shared_data.portstart
+            portend = self.shared_data.portend
+            extra_ports = self.shared_data.portlist
+            scanner = self.ScanPorts(self, network, portstart, portend, extra_ports)
+            ip_data, open_ports, all_ports, csv_result_file, netkbfile, alive_ips = scanner.start()
+
+            alive_macs = set(ip_data.mac_list)
+
+            # Add WiFi scanning
+            self.update_wifi_data(scanner.ip_hostname_list, alive_macs)
+
+            table = Table(title="Scan Results", show_lines=True)
+            table.add_column("IP", style="cyan", no_wrap=True)
+            table.add_column("Hostname", style="cyan", no_wrap=True)
+            table.add_column("Alive", style="cyan", no_wrap=True)
+            table.add_column("MAC Address", style="cyan", no_wrap=True)
+            for port in all_ports:
+                table.add_column(f"{port}", style="green")
+
+            netkb_data = []
+            for ip, ports, hostname, mac in zip(ip_data.ip_list, open_ports.values(), ip_data.hostname_list, ip_data.mac_list):
+                if self.blacklistcheck and (mac in self.mac_scan_blacklist or ip in self.ip_scan_blacklist):
+                    continue
+                alive = '1' if mac in alive_macs else '0'
+                row = [ip, hostname, alive, mac] + [Text(str(port), style="green bold") if port in ports else Text("", style="on red") for port in all_ports]
+                table.add_row(*row)
+                netkb_data.append([mac, ip, hostname, ports])
+
+            # Add WiFi data to netkb_data
+            self.update_wifi_data(netkb_data, alive_macs)
+
+            with self.lock:
+                with open(csv_result_file, 'w', newline='') as file:
+                    writer = csv.writer(file)
+                    writer.writerow(["IP", "Hostname", "Alive", "MAC Address"] + [str(port) for port in all_ports])
+                    for ip, ports, hostname, mac in zip(ip_data.ip_list, open_ports.values(), ip_data.hostname_list, ip_data.mac_list):
+                        if self.blacklistcheck and (mac in self.mac_scan_blacklist or ip in self.ip_scan_blacklist):
+                            continue
+                        alive = '1' if mac in alive_macs else '0'
+                        writer.writerow([ip, hostname, alive, mac] + [str(port) if port in ports else '' for port in all_ports])
+
+            self.update_netkb(netkbfile, netkb_data, alive_macs)
+
+            if self.displaying_csv:
+                self.display_csv(csv_result_file)
+
+            source_csv_path = self.shared_data.netkbfile
+            output_csv_path = self.shared_data.livestatusfile
+
+            updater = self.LiveStatusUpdater(source_csv_path, output_csv_path)
+            updater.update_livestatus()
+            updater.clean_scan_results(self.shared_data.scan_results_dir)
+        except Exception as e:
+            self.logger.error(f"Error in scan: {e}")
 
     def check_if_csv_scan_file_exists(self, csv_scan_file, csv_result_file, netkbfile):
         """
