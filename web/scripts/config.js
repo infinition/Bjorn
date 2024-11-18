@@ -68,9 +68,18 @@ function generateConfigForm(config) {
     
         const formData = new FormData(formElement);
         const formDataObj = {};
-    
+        // Each of these fields contains an array of data.  Lets track these so we can ensure the format remains an array for the underlying structure.
+        const arrayFields = [
+            "portlist",
+            "mac_scan_blacklist",
+            "ip_scan_blacklist",
+            "steal_file_names",
+            "steal_file_extensions",
+        ];
+
         formData.forEach((value, key) => {
-            if (value.includes(',')) {
+            // Check if the input from the user contains a `,` character or is a known array field
+            if (value.includes(',') || arrayFields.includes(key)) {
                 formDataObj[key] = value.split(',').map(item => {
                     const trimmedItem = item.trim();
                     return isNaN(trimmedItem) ? trimmedItem : parseFloat(trimmedItem);
