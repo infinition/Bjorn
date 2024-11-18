@@ -8,7 +8,7 @@ netifaces==0.11.0
 ping3==4.0.8
 get-mac==0.9.2
 paramiko==3.5.0
-smbprotocol==1.14.0
+smbprotocol==1.15.0
 pysmb==1.2.10
 pymysql==1.1.1
 sqlalchemy==2.0.36
