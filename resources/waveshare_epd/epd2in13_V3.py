@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 class EPD:
     def __init__(self):
+        self.is_initialized = False  # New flag to track if the display has been initialized #INFINITION
         self.reset_pin = epdconfig.RST_PIN
         self.dc_pin = epdconfig.DC_PIN
         self.busy_pin = epdconfig.BUSY_PIN
@@ -200,42 +201,54 @@ class EPD:
     parameter:
     '''
     def init(self, update=None):
+        # Prevent reinitialization if already initialized #INFINITION
+        if self.is_initialized:  
+            logger.debug("EPD is already initialized. Skipping redundant init.")
+            return 0
+
         if update is None:
             update = self.FULL_UPDATE
 
+        # Initialize the module
         if epdconfig.module_init() != 0:
+            logger.error("Failed to initialize module")
             return -1
-        # EPD hardware init start
-        self.reset()
-        
-        self.ReadBusy()
-        self.send_command(0x12)  #SWRESET
-        self.ReadBusy() 
 
-        self.send_command(0x01) #Driver output control      
+        # EPD hardware initialization start
+        self.reset()
+
+        self.ReadBusy()
+        self.send_command(0x12)  # SWRESET
+        self.ReadBusy()
+
+        self.send_command(0x01)  # Driver output control
         self.send_data(0xf9)
         self.send_data(0x00)
         self.send_data(0x00)
-    
-        self.send_command(0x11) #data entry mode       
+
+        self.send_command(0x11)  # Data entry mode
         self.send_data(0x03)
 
-        self.SetWindow(0, 0, self.width-1, self.height-1)
+        self.SetWindow(0, 0, self.width - 1, self.height - 1)
         self.SetCursor(0, 0)
-        
+
         self.send_command(0x3c)
         self.send_data(0x05)
 
-        self.send_command(0x21) #  Display update control
+        self.send_command(0x21)  # Display update control
         self.send_data(0x00)
         self.send_data(0x80)
-    
+
         self.send_command(0x18)
         self.send_data(0x80)
-        
+
         self.ReadBusy()
-        
+
         self.SetLut(self.lut_full_update)
+
+        # Mark the EPD as initialized #INFINITION
+        self.is_initialized = True
+        logger.info("EPD initialized successfully")
         return 0
 
     '''
