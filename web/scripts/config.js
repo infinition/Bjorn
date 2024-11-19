@@ -82,7 +82,7 @@ function generateConfigForm(config) {
             if (value.includes(',') || arrayFields.includes(key)) {
                 formDataObj[key] = value.split(',').map(item => {
                     const trimmedItem = item.trim();
-                    return isNaN(trimmedItem) ? trimmedItem : parseFloat(trimmedItem);
+                    return isNaN(trimmedItem) || trimmedItem == "" ? trimmedItem : parseFloat(trimmedItem);
                 });
             } else {
                 formDataObj[key] = value === 'on' ? true : (isNaN(value) ? value : parseFloat(value));
