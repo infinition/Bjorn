@@ -728,6 +728,10 @@ method=auto
                 elif isinstance(value, (int, float)):
                     current_config[key] = value
                 elif isinstance(value, list):
+                    # Lets boot any values in a list that are just empty strings
+                    for val in value[:]:
+                        if val == "" :
+                            value.remove(val)
                     current_config[key] = value
                 elif isinstance(value, str):
                     if value.replace('.', '', 1).isdigit():
