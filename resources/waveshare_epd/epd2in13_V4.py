@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 class EPD:
     def __init__(self):
+        self.is_initialized = False  # New flag to track if the display has been initialized #INFINITION
         self.reset_pin = epdconfig.RST_PIN
         self.dc_pin = epdconfig.DC_PIN
         self.busy_pin = epdconfig.BUSY_PIN
@@ -138,11 +139,11 @@ class EPD:
     parameter:
     '''
     def init(self):
-        if (epdconfig.module_init() != 0):
-            return -1
-        # EPD hardware init start
-        self.reset()
-        
+        if not self.is_initialized:  # Avoid repeated initialization and accumulation of File descriptors #INFINITION
+            if epdconfig.module_init() != 0:
+                return -1
+            self.reset()
+            self.is_initialized = True
         self.ReadBusy()
         self.send_command(0x12)  #SWRESET
         self.ReadBusy() 
