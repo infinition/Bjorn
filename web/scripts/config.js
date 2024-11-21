@@ -75,6 +75,7 @@ function generateConfigForm(config) {
             "ip_scan_blacklist",
             "steal_file_names",
             "steal_file_extensions",
+            "custom_subnet_list",
         ];
 
         formData.forEach((value, key) => {

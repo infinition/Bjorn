@@ -42,6 +42,8 @@ class NetworkScanner:
         self.blacklistcheck = shared_data.blacklistcheck
         self.mac_scan_blacklist = shared_data.mac_scan_blacklist
         self.ip_scan_blacklist = shared_data.ip_scan_blacklist
+        self.use_custom_subnets = shared_data.use_custom_subnets
+        self.custom_subnet_list = shared_data.custom_subnet_list
         self.console = Console()
         self.lock = threading.Lock()
         self.currentdir = shared_data.currentdir
@@ -368,7 +370,11 @@ class NetworkScanner:
                     self.outer_instance.logger.error(f"Error in scan_network_and_write_to_csv (initial write): {e}")
 
             # Use nmap to scan for live hosts
-            self.outer_instance.nm.scan(hosts=str(self.network), arguments='-sn')
+            subnets = str(self.network)
+            if self.outer_instance.use_custom_subnets:
+                subnets = " ".join(self.outer_instance.custom_subnet_list)
+
+            self.outer_instance.nm.scan(hosts=subnets, arguments='-sn')
             for host in self.outer_instance.nm.all_hosts():
                 t = threading.Thread(target=self.scan_host, args=(host,))
                 t.start()
