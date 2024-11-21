@@ -60,7 +60,7 @@ html {
     cursor: pointer;
 }
 
-.toolbar a:hover, .toolbar button:hover, .toolbar-button:hover, .action-button:hover {
+.toolbar a:hover, .toolbar button:hover, .toolbar-button:hover, .toolbar-button:hover button.toolbar-button, .action-button:hover {
     background-color: #e99f00;
     color: black;
 }
@@ -514,6 +514,7 @@ td:first-child, th:first-child {
     background-color: #333;
     text-align: left;
     border-radius: 8px;
+    cursor: pointer;
 }
 
 .dropdown-content button:hover {

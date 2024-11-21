@@ -112,9 +112,9 @@ check_system_compatibility() {
 
     # Check RAM (Raspberry Pi Zero has 512MB RAM)
     total_ram=$(free -m | awk '/^Mem:/{print $2}')
-    if [ "$total_ram" -lt 429 ]; then
-        log "WARNING" "Low RAM detected. Required: 512MB, Found: ${total_ram}MB"
-        echo -e "${YELLOW}Your system has less RAM than recommended. This might affect performance.${NC}"
+    if [ "$total_ram" -lt 410 ]; then
+        log "WARNING" "Low RAM detected. Required: 512MB (410 With OS Running), Found: ${total_ram}MB"
+        echo -e "${YELLOW}Your system has less RAM than recommended. This might affect performance, but you can continue.${NC}"
         should_ask_confirmation=true
     else
         log "SUCCESS" "RAM check passed: ${total_ram}MB available"
@@ -122,7 +122,7 @@ check_system_compatibility() {
 
     # Check available disk space
     available_space=$(df -m /home | awk 'NR==2 {print $4}')
-    if [ "$available_space" -lt 1024 ]; then
+    if [ "$available_space" -lt 2048 ]; then
         log "WARNING" "Low disk space. Recommended: 1GB, Found: ${available_space}MB"
         echo -e "${YELLOW}Your system has less free space than recommended. This might affect installation.${NC}"
         should_ask_confirmation=true
