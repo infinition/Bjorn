@@ -195,7 +195,10 @@ check_system_compatibility() {
     return 0
 }
 
-
+# Call ssh_ascii.py
+log "INFO" "Displaying SSH ASCII art..."
+python3 /path/to/ssh_ascii.py
+check_success "SSH ASCII art displayed successfully"
 
 # Install system dependencies
 install_dependencies() {
