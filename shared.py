@@ -156,6 +156,8 @@ class SharedData:
             "nmap_scan_aggressivity": "-T2",
             "portstart": 1,
             "portend": 2,
+            "use_custom_subnets": False,
+            "custom_subnet_list": ["192.168.1.0/24"],
             
             "__title_timewaits__": "Time Wait Settings",
             "timewait_smb": 0,
