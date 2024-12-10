@@ -2,6 +2,9 @@
     "__title_Bjorn__": "Settings",
     "manual_mode": false,
     "websrv": true,
+    "web_auth_enabled": false,
+    "web_auth_user": "sam",
+    "web_auth_pass": "sam",
     "web_increment ": false,
     "debug_mode": true,
     "scan_vuln_running": false,
@@ -74,7 +77,8 @@
     ],
     "mac_scan_blacklist": [
         "00:11:32:c4:71:9b",
-        "00:11:32:c4:71:9a"
+        "00:11:32:c4:71:9a",
+        "2c:cf:67:a7:0a:81"
     ],
     "ip_scan_blacklist": [
         "192.168.1.1",
@@ -103,5 +107,8 @@
     "timewait_telnet": 0,
     "timewait_ftp": 0,
     "timewait_sql": 0,
-    "timewait_rdp": 0
+    "timewait_rdp": 0,
+    "web_auth": true,
+    "web_auth_username": "bjorn",
+    "web_auth_password": "test2"
 }

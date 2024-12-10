@@ -9,6 +9,7 @@ import signal
 import os
 import gzip
 import io
+import base64
 from logger import Logger
 from init_shared import shared_data
 from utils import WebUtils
@@ -18,6 +19,12 @@ logger = Logger(name="webapp.py", level=logging.DEBUG)
 
 # Set the path to the favicon
 favicon_path = os.path.join(shared_data.webdir, '/images/favicon.ico')
+
+# Set Basic Auth variables
+web_auth = (shared_data.config["web_auth_enabled"] and shared_data.config["web_auth_enabled"] == True)
+web_auth_user = shared_data.config["web_auth_user"]
+web_auth_pass = shared_data.config["web_auth_pass"]
+
 
 class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -56,9 +63,24 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             content = file.read()
         self.send_gzipped_response(content, content_type)
 
+    def basic_auth_check(self):
+        return self.headers.get('Authorization') == None or self.headers.get('Authorization') != 'Basic ' + base64.b64encode(f"{web_auth_user}:{web_auth_pass}".encode()).decode()
+   
+    def do_AUTHHEAD(self):
+        logger.info("Sending Auth Header")
+        self.send_response(401)
+        self.send_header('WWW-Authenticate','Basic realm="BJORN"')
+        self.send_header('Content-Type','text/html')
+        self.end_headers()
+
     def do_GET(self):
+        # Check Web Auth
+        if web_auth and self.basic_auth_check():
+                self.do_AUTHHEAD()
+                return
         # Handle GET requests. Serve the HTML interface and the EPD image.
         if self.path == '/index.html' or self.path == '/':
+            #logger.info("Serving Index Page")
             self.serve_file_gzipped(os.path.join(self.shared_data.webdir, 'index.html'), 'text/html')
         elif self.path == '/config.html':
             self.serve_file_gzipped(os.path.join(self.shared_data.webdir, 'config.html'), 'text/html')
@@ -116,6 +138,10 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             super().do_GET()
 
     def do_POST(self):
+        # Check Web Auth
+        if web_auth and self.basic_auth_check():
+                self.do_AUTHHEAD()
+                return
         # Handle POST requests for saving configuration, connecting to Wi-Fi, clearing files, rebooting, and shutting down.
         if self.path == '/save_config':
             self.web_utils.save_configuration(self)
