@@ -17,7 +17,12 @@
   - [Data Structure](#-data-structure)
 - [Detailed Project Description](#-detailed-project-description)
   - [Behaviour of Bjorn](#-behavior-of-bjorn)
-- [Running Bjorn](#-running-bjorn)
+- [Installing and Developing Bjorn from Source Quick Start](#-installing-and-developing-bjorn-from-source-quick-start)
+  - [Prerequisites](#-prerequisites)
+  - [Clone the Repository](#-clone-the-repository)
+  - [Set Up Python Environment](#-set-up-python-environment)
+  - [Configure Oh My Zsh](#-configure-oh-my-zsh)
+  - [Install Bjorn](#-install-bjorn)
   - [Manual Start](#-manual-start)
   - [Service Control](#-service-control)
   - [Fresh Start](#-fresh-start)
@@ -31,7 +36,7 @@
   - [Testing](#-testing)
 - [Web Interface](#-web-interface)
 - [Project Roadmap](#-project-roadmap)
-  - [Current Focus](#-future-plans)
+  - [Current Focus](#-current-focus)
   - [Future Plans](#-future-plans)
 - [License](#-license)
 
@@ -230,14 +235,95 @@ Once launched, Bjorn performs the following steps:
 4. **Vulnerability Scanning**: Performs vulnerability scans on identified hosts and updates the vulnerability summary.
 5. **Brute-Force Attacks and File Stealing**: Starts brute-force attacks and steals files based on the configuration criteria.
 6. **Display Updates**: Continuously updates the e-Paper HAT display with current information such as network status, vulnerabilities, and various statistics. Bjorn also displays random comments based on different themes and statuses.
+
 7. **Web Server**: Provides a web interface for monitoring and interacting with Bjorn.
 
-## ▶️ Running Bjorn
+
+## **Installing and Developing Bjorn from Source Quick Start**
+
+This guide provides a streamlined process for setting up and developing Bjorn on a Raspberry Pi, starting from the assumption that you are already connected via SSH as `bjorn@bjorn.local`.
+
+---
+
+### ▶️ Installing Bjorn from Source
+
+#### 📗 Prerequisites
+
+Ensure your Raspberry Pi is up-to-date and ready for development:
+```bash
+# Update the system
+sudo apt update && sudo apt upgrade -y
+
+# Install Git
+sudo apt install git -y
+```
+
+#### 📗 Clone the Repository
+
+Clone your fork of Bjorn from GitHub (replace `<your-username>` with your GitHub username):
+```bash
+git clone git@github.com:<your-username>/Bjorn.git
+cd Bjorn
+
+# Create and switch to a development branch
+git checkout -b dev
+```
+
+#### 🐍 Set Up Python Environment
+
+Install Python and set up a virtual environment:
+```bash
+# Install Python and venv
+sudo apt install python3 python3-venv python3-pip -y
+
+# Create a virtual environment
+python3 -m venv venv
+
+# Activate the virtual environment
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+#### 🎨 Configure Oh My Zsh (optional)
+
+Install and configure **Oh My Zsh** with the Half-Life theme:
+```bash
+# Install Zsh
+sudo apt install zsh -y
+
+# Install Oh My Zsh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+
+# Use the built-in theme selection tool to set the Half-Life theme
+omz theme set half-life
+
+# Reload Zsh
+exec zsh
+```
+
+#### 🛠️ Install Bjorn
+
+Run the installation script:
+```bash
+sudo bash install_bjorn.sh
+```
+
+After installation, disable the Bjorn service for uninterrupted development unless testing service-related features:
+```bash
+# Stop and disable the Bjorn service
+sudo systemctl stop bjorn.service
+sudo systemctl disable bjorn.service
+```
+
+---
+
+### ▶️ Running Bjorn for Development
 
 ### 📗 Manual Start
 
-To manually start Bjorn (without the service, ensure the service is  stopped « sudo systemctl stop bjorn.service »):
-
+To run Bjorn manually (ensure the service is stopped):
 ```bash
 cd /home/bjorn/Bjorn
 
@@ -245,10 +331,9 @@ cd /home/bjorn/Bjorn
 sudo python Bjorn.py
 ```
 
-### 🕹️ Service Control
+#### 🕹️ Service Control
 
-Control the Bjorn service:
-
+Control the Bjorn service (useful for testing service restart functionality):
 ```bash
 # Start Bjorn
 sudo systemctl start bjorn.service
@@ -263,10 +348,9 @@ sudo systemctl status bjorn.service
 sudo journalctl -u bjorn.service
 ```
 
-### 🪄 Fresh Start
+#### 🪄 Fresh Start
 
-To reset Bjorn to a clean state:
-
+Reset Bjorn to a clean state:
 ```bash
 sudo rm -rf /home/bjorn/Bjorn/config/*.json \
     /home/bjorn/Bjorn/data/*.csv \
@@ -286,10 +370,59 @@ sudo rm -rf /home/bjorn/Bjorn/config/*.json \
     /home/bjorn/Bjorn/data/logs/* \
     /home/bjorn/Bjorn/data/output/vulnerabilities/* \
     /home/bjorn/Bjorn/data/logs/*
+```
+Everything will be recreated automatically at the next launch of Bjorn.
 
+---
+
+### ▶️ Development Workflow
+
+### 📗 Managing Git Branches
+
+Ensure you are working in the `dev` branch:
+```bash
+# Check the current branch
+git branch
+
+# If not on the dev branch, switch to it
+git checkout dev
 ```
 
-Everything will be recreated automatically at the next launch of Bjorn.
+Standard Git commands for managing your changes:
+```bash
+# Add and stage changes
+git add .
+
+# Commit changes with a meaningful message
+git commit -m "Describe your changes"
+
+# Push changes to your fork on the dev branch
+git push origin dev
+```
+
+#### 📗 Activating Virtual Environment
+
+Before development or testing, activate the virtual environment:
+```bash
+cd /home/bjorn/Bjorn
+source venv/bin/activate
+```
+
+---
+
+### ▶️ Checklist for Developers
+
+1. SSH into the Raspberry Pi as `bjorn@bjorn.local`.
+2. Update the system and install Git.
+3. Clone the Bjorn repository and create a development branch.
+4. Set up Python virtual environment and install dependencies.
+5. Install and configure Oh My Zsh with the Half-Life theme.
+6. Install Bjorn using `install_bjorn.sh` and disable the service.
+7. Run Bjorn manually for development.
+8. Ensure you’re working in the `dev` branch and use Git to manage changes.
+9. Activate the virtual environment before running Bjorn or testing.
+
+---
 
 ## ❇️ Important Configuration Files
 
