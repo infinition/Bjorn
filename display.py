@@ -344,7 +344,13 @@ class Display:
                     image = image.transpose(Image.ROTATE_180)
 
                 self.epd_helper.display_partial(image)
-                self.epd_helper.display_partial(image)
+
+                if self.epd_helper.is_tri_color:
+                    effective_delay = max(self.shared_data.screen_delay, self.epd_helper.min_refresh_interval)
+                    if effective_delay != self.shared_data.screen_delay:
+                        logger.info(f"Tri-color display: enforcing minimum {effective_delay}s refresh interval")
+                else:
+                    effective_delay = self.shared_data.screen_delay
 
                 if self.web_screen_reversed:
                     image = image.transpose(Image.ROTATE_180)
@@ -353,7 +359,7 @@ class Display:
                     img_file.flush()
                     os.fsync(img_file.fileno())
                 
-                time.sleep(self.shared_data.screen_delay)
+                time.sleep(effective_delay)
             except Exception as e:
                 logger.error(f"An error occurred: {e}")
 
@@ -363,9 +369,10 @@ def handle_exit_display(signum, frame, display_thread):
     shared_data.display_should_exit = True
     logger.info("Exit signal received. Waiting for the main loop to finish...")
     try:
-        if main_loop and main_loop.epd:
-            main_loop.epd.init(main_loop.epd.sleep)
-            main_loop.epd.Dev_exit()
+        if main_loop and main_loop.epd_helper:
+            # 清屏并进入睡眠模式以保护膜片
+            main_loop.epd_helper.clear()
+            main_loop.epd_helper.sleep()
     except Exception as e:
         logger.error(f"Error while closing the display: {e}")
     display_thread.join()

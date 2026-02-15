@@ -265,8 +265,28 @@ class SharedData:
                 logger.info("EPD type: epd2in13_V4 screen reversed")
                 self.screen_reversed = True
                 self.web_screen_reversed = True
+            elif self.config["epd_type"] == "epd2in13bc":
+                logger.info("EPD type: epd2in13bc (black/white/red) screen reversed")
+                self.screen_reversed = True
+                self.web_screen_reversed = True
             self.epd_helper.init_full_update()
             self.width, self.height = self.epd_helper.epd.width, self.epd_helper.epd.height
+            
+            # Auto-set reference dimensions based on display type for correct scaling
+            display_ref_sizes = {
+                "epd2in13": (122, 250),
+                "epd2in13_V2": (122, 250),
+                "epd2in13_V3": (122, 250),
+                "epd2in13_V4": (122, 250),
+                "epd2in13bc": (104, 212),
+                "epd2in7": (176, 264),
+            }
+            if self.config["epd_type"] in display_ref_sizes:
+                self.ref_width, self.ref_height = display_ref_sizes[self.config["epd_type"]]
+                self.config["ref_width"] = self.ref_width
+                self.config["ref_height"] = self.ref_height
+                logger.info(f"Auto-set ref size for {self.config['epd_type']}: {self.ref_width}x{self.ref_height}")
+            
             logger.info(f"EPD {self.config['epd_type']} initialized with size: {self.width}x{self.height}")
         except Exception as e:
             logger.error(f"Error initializing EPD display: {e}")
