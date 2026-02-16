@@ -539,7 +539,7 @@ main() {
     echo "5. epd2in7"
     
     while true; do
-        read -p "Enter your choice (1-4): " epd_choice
+        read -p "Enter your choice (1-5): " epd_choice
         case $epd_choice in
             1) EPD_VERSION="epd2in13"; break;;
             2) EPD_VERSION="epd2in13_V2"; break;;
