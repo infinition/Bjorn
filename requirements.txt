@@ -5,7 +5,7 @@ netifaces==0.11.0
 ping3==4.0.8
 get-mac==0.9.2
 smbprotocol==1.14.0
-pysmb==1.2.10
+pysmb==1.2.13
 pymysql==1.1.1
 sqlalchemy==2.0.36
 python-nmap==0.7.1
