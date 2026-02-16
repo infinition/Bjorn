@@ -7,5 +7,5 @@ get-mac==0.9.2
 smbprotocol==1.14.0
 pysmb==1.2.10
 pymysql==1.1.1
-sqlalchemy==2.0.36
+sqlalchemy==2.0.46
 python-nmap==0.7.1
