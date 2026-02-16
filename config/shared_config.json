@@ -28,7 +28,7 @@
     "success_retry_delay": 900,
     "ref_width": 122,
     "ref_height": 250,
-    "epd_type": "epd2in13_V4",
+    "epd_type": "epd2in13b_v3",
     "__title_lists__": "List Settings",
     "portlist": [
         20,
@@ -74,7 +74,8 @@
     ],
     "mac_scan_blacklist": [
         "00:11:32:c4:71:9b",
-        "00:11:32:c4:71:9a"
+        "00:11:32:c4:71:9a",
+        "b8:27:eb:0c:23:14"
     ],
     "ip_scan_blacklist": [
         "192.168.1.1",
