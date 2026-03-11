@@ -15,6 +15,7 @@
 import threading
 import time
 import os
+import json
 import pandas as pd
 import signal
 import glob
@@ -199,6 +200,11 @@ class Display:
                     self.manual_mode_txt = "M"
                 else:
                     self.manual_mode_txt = "A"
+                bluetooth_state = self.load_bluetooth_state()
+                self.shared_data.bluetooth_active = bool(
+                    bluetooth_state.get("enabled") and bluetooth_state.get("powered")
+                )
+                self.shared_data.pan_connected = bool(bluetooth_state.get("connected_devices"))
                 self.shared_data.wifi_connected = self.is_wifi_connected()
                 self.shared_data.usb_active = self.is_usb_connected()
                 self.get_open_files()
@@ -216,6 +222,32 @@ class Display:
             self.shared_data.bjornstatustext = self.shared_data.bjornorch_status
         else:
             pass
+
+    def load_bluetooth_state(self):
+        """Load the current Bluetooth manager state from disk."""
+        try:
+            with open(self.shared_data.bluetooth_state_file, "r", encoding="utf-8") as handle:
+                return json.load(handle)
+        except FileNotFoundError:
+            return {}
+        except json.JSONDecodeError as e:
+            logger.error(f"Error decoding Bluetooth state: {e}")
+            return {}
+        except Exception as e:
+            logger.error(f"Error loading Bluetooth state: {e}")
+            return {}
+
+    def get_bluetooth_overlay_lines(self):
+        """Return Bluetooth overlay lines when pairing UX should take over the speech area."""
+        bluetooth_state = self.load_bluetooth_state()
+        self.shared_data.bluetooth_active = bool(
+            bluetooth_state.get("enabled") and bluetooth_state.get("powered")
+        )
+        self.shared_data.pan_connected = bool(bluetooth_state.get("connected_devices"))
+
+        if bluetooth_state.get("display_overlay"):
+            return bluetooth_state.get("display_lines", [])
+        return []
 
     # # # def is_bluetooth_connected(self):
     # # #     """
@@ -290,8 +322,8 @@ class Display:
                 
                 if self.shared_data.wifi_connected:
                     image.paste(self.shared_data.wifi, (int(3 * self.scale_factor_x), int(3 * self.scale_factor_y)))
-                # # # if self.shared_data.bluetooth_active:
-                # # #     image.paste(self.shared_data.bluetooth, (int(23 * self.scale_factor_x), int(4 * self.scale_factor_y)))
+                if self.shared_data.bluetooth_active:
+                    image.paste(self.shared_data.bluetooth, (int(23 * self.scale_factor_x), int(4 * self.scale_factor_y)))
                 if self.shared_data.pan_connected:
                     image.paste(self.shared_data.connected, (int(104 * self.scale_factor_x), int(3 * self.scale_factor_y)))
                 if self.shared_data.usb_active:
@@ -328,7 +360,15 @@ class Display:
                 draw.line((1, 59, self.shared_data.width - 1, 59), fill=0)
                 draw.line((1, 87, self.shared_data.width - 1, 87), fill=0)
 
-                lines = self.shared_data.wrap_text(self.shared_data.bjornsay, self.shared_data.font_arialbold, self.shared_data.width - 4)
+                overlay_lines = self.get_bluetooth_overlay_lines()
+                if overlay_lines:
+                    lines = overlay_lines
+                else:
+                    lines = self.shared_data.wrap_text(
+                        self.shared_data.bjornsay,
+                        self.shared_data.font_arialbold,
+                        self.shared_data.width - 4,
+                    )
                 y_text = int(90 * self.scale_factor_y)
 
                 if self.main_image is not None:

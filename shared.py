@@ -85,6 +85,7 @@ class SharedData:
         """Files paths"""
         # Files directly under configdir
         self.shared_config_json = os.path.join(self.configdir, 'shared_config.json')
+        self.bluetooth_state_file = os.path.join(self.configdir, 'bluetooth_state.json')
         self.actions_file = os.path.join(self.configdir, 'actions.json')
         # Files directly under resourcesdir
         self.commentsfile = os.path.join(self.commentsdir, 'comments.json')
@@ -143,6 +144,12 @@ class SharedData:
             "ref_width" :122 ,
             "ref_height" : 250,
             "epd_type": "epd2in13_V4",
+            "bluetooth_pairing_enabled": False,
+            "bluetooth_discoverable_timeout": 0,
+            "bluetooth_agent_capability": "DisplayYesNo",
+            "bluetooth_ssh_user": "bjorn",
+            "bluetooth_pairing_pin": "",
+            "bluetooth_alias": "bjorn",
             
             
             "__title_lists__": "List Settings",
