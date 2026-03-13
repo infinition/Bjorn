@@ -30,9 +30,13 @@ journalctl -fu bjorn.service
 
 # Check service status
 sudo systemctl status bjorn.service
+sudo systemctl status bjorn-bluetooth.service
+sudo systemctl status bjorn-connectivity.service
 
 # View detailed logs
 sudo journalctl -u bjorn.service -f
+sudo journalctl -u bjorn-bluetooth.service -f
+sudo journalctl -u bjorn-connectivity.service -f
 
 or
 
@@ -59,9 +63,19 @@ sudo usermod -a -G spi,gpio bjorn
 # Check network interfaces
 ip addr show
 
+# Check NetworkManager state
+nmcli general status
+nmcli device status
+
+# Check setup AP and Bluetooth PAN state
+nmcli connection show --active
+cat /home/bjorn/Bjorn/config/connectivity_state.json
+
 # Test USB gadget interface
 ip link show usb0
 ```
+
+If `http://172.22.0.1:8000` will not load over Bluetooth PAN, turn off Wi-Fi and mobile data on the phone first. If that is still unreliable, use the `bjorn-setup` access point instead.
 
 ### Permission Issues
 

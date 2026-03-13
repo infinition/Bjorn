@@ -24,7 +24,7 @@ import subprocess
 from init_shared import shared_data
 from display import Display, handle_exit_display
 from comment import Commentaireia
-from webapp import web_thread, handle_exit_web
+from webapp import web_thread, redirect_thread, handle_exit_web
 from orchestrator import Orchestrator
 from logger import Logger
 
@@ -110,7 +110,7 @@ class Bjorn:
         display_thread.start()
         return display_thread
 
-def handle_exit(sig, frame, display_thread, bjorn_thread, web_thread):
+def handle_exit(sig, frame, display_thread, bjorn_thread, web_thread, redirect_thread):
     """Handles the termination of the main, display, and web threads."""
     shared_data.should_exit = True
     shared_data.orchestrator_should_exit = True  # Ensure orchestrator stops
@@ -122,7 +122,11 @@ def handle_exit(sig, frame, display_thread, bjorn_thread, web_thread):
     if bjorn_thread.is_alive():
         bjorn_thread.join()
     if web_thread.is_alive():
+        web_thread.shutdown()
         web_thread.join()
+    if redirect_thread.is_alive():
+        redirect_thread.shutdown()
+        redirect_thread.join()
     logger.info("Main loop finished. Clean exit.")
     sys.exit(0)  # Used sys.exit(0) instead of exit(0)
 
@@ -148,9 +152,10 @@ if __name__ == "__main__":
         if shared_data.config["websrv"]:
             logger.info("Starting the web server...")
             web_thread.start()
+            redirect_thread.start()
 
-        signal.signal(signal.SIGINT, lambda sig, frame: handle_exit(sig, frame, display_thread, bjorn_thread, web_thread))
-        signal.signal(signal.SIGTERM, lambda sig, frame: handle_exit(sig, frame, display_thread, bjorn_thread, web_thread))
+        signal.signal(signal.SIGINT, lambda sig, frame: handle_exit(sig, frame, display_thread, bjorn_thread, web_thread, redirect_thread))
+        signal.signal(signal.SIGTERM, lambda sig, frame: handle_exit(sig, frame, display_thread, bjorn_thread, web_thread, redirect_thread))
 
     except Exception as e:
         logger.error(f"An exception occurred during thread start: {e}")

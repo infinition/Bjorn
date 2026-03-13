@@ -1,62 +1,128 @@
+function configFieldId(key) {
+    return `config_${String(key).replace(/[^A-Za-z0-9_-]/g, '_')}`;
+}
+
+function appendSectionTitle(container, value) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'section-title';
+
+    const bold = document.createElement('b');
+    bold.textContent = value;
+    wrapper.appendChild(bold);
+
+    container.appendChild(wrapper);
+}
+
+function appendBooleanField(container, key, checked) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'label-switch';
+
+    const switchLabel = document.createElement('label');
+    switchLabel.className = 'switch';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = configFieldId(key);
+    checkbox.name = key;
+    checkbox.checked = checked;
+
+    const slider = document.createElement('span');
+    slider.className = 'slider round';
+
+    switchLabel.appendChild(checkbox);
+    switchLabel.appendChild(slider);
+
+    const textLabel = document.createElement('label');
+    textLabel.htmlFor = checkbox.id;
+    textLabel.textContent = key;
+
+    wrapper.appendChild(switchLabel);
+    wrapper.appendChild(textLabel);
+    container.appendChild(wrapper);
+}
+
+function appendInputField(container, key, value, type = 'text', placeholder = '') {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'section-item';
+
+    const label = document.createElement('label');
+    const input = document.createElement('input');
+
+    input.id = configFieldId(key);
+    input.name = key;
+    input.type = type;
+    input.value = value;
+    if (placeholder) {
+        input.placeholder = placeholder;
+    }
+    if (type === 'password') {
+        input.autocomplete = 'new-password';
+    }
+
+    label.htmlFor = input.id;
+    label.textContent = `${key}:`;
+
+    wrapper.appendChild(label);
+    wrapper.appendChild(input);
+    container.appendChild(wrapper);
+}
 
 function generateConfigForm(config) {
     const formElement = document.querySelector(".config-form");
-    formElement.innerHTML = ''; // Clear the form
-    
+    formElement.innerHTML = '';
+
     const leftColumn = document.createElement('div');
     leftColumn.classList.add('left-column');
-    
+
     const rightColumn = document.createElement('div');
     rightColumn.classList.add('right-column');
-    
+
     for (const [key, value] of Object.entries(config)) {
         if (key.startsWith("__title_")) {
-            rightColumn.innerHTML += `<div class="section-title"><b>${value}</b></div>`;
-        } else if (typeof value === "boolean") {
-            const checked = value ? "checked" : "";
-            leftColumn.innerHTML += `
-    
-                <div class="label-switch">
-                    <label class="switch">
-                        <input type="checkbox" id="${key}" name="${key}" ${checked}>
-                        <span class="slider round"></span>
-                    </label>
-                    <label for="${key}">${key}</label>
-                </div>
-            `;
-        } else if (Array.isArray(value)) {
-            const listValue = value.join(',');
-            rightColumn.innerHTML += `
-                <div class="section-item">
-                    <label for="${key}">${key}:</label>
-                    <input type="text" id="${key}" name="${key}" value="${listValue}">
-                </div>
-            `;
-        } else if (!isNaN(value) && !key.toLowerCase().includes("ip") && !key.toLowerCase().includes("mac")) {
-            rightColumn.innerHTML += `
-                <div class="section-item">
-                    <label for="${key}">${key}:</label>
-                    <input type="number" id="${key}" name="${key}" value="${value}">
-                </div>
-            `;
-        } else {
-            rightColumn.innerHTML += `
-                <div class="section-item">
-                    <label for="${key}">${key}:</label>
-                    <input type="text" id="${key}" name="${key}" value="${value}">
-                </div>
-            `;
+            appendSectionTitle(rightColumn, value);
+            continue;
         }
+
+        if (typeof value === "boolean") {
+            appendBooleanField(leftColumn, key, value);
+            continue;
+        }
+
+        if (Array.isArray(value)) {
+            appendInputField(rightColumn, key, value.join(','), 'text');
+            continue;
+        }
+
+        const isPasswordField = key.toLowerCase().includes('password') || key.toLowerCase().includes('pin');
+        if (isPasswordField) {
+            const maskedValue = value === '********' ? '' : value;
+            const placeholder = value === '********' ? 'Leave blank to keep current value' : '';
+            appendInputField(rightColumn, key, maskedValue, 'password', placeholder);
+            continue;
+        }
+
+        if (!isNaN(value) && !key.toLowerCase().includes("ip") && !key.toLowerCase().includes("mac")) {
+            appendInputField(rightColumn, key, value, 'number');
+            continue;
+        }
+
+        appendInputField(rightColumn, key, value, 'text');
     }
-    
+
     formElement.appendChild(leftColumn);
     formElement.appendChild(rightColumn);
+
+    const spacer = document.createElement('div');
+    spacer.style.height = '50px';
+    formElement.appendChild(spacer);
+}
     
-    // Add a spacer div at the end for better scrolling experience
-    formElement.innerHTML += '<div style="height: 50px;"></div>';
-    }
     
-    
+function handleAuthFailure() {
+    alert("Unlock setup access from /setup.html first.");
+    window.location.href = '/setup.html';
+}
+
     function saveConfig() {
         console.log("Saving configuration...");
         const formElement = document.querySelector(".config-form");
@@ -105,6 +171,8 @@ function generateConfigForm(config) {
                 console.log("Response status: " + xhr.status);
                 if (xhr.status == 200) {
                     loadConfig();
+                } else if (xhr.status == 403) {
+                    handleAuthFailure();
                 } else {
                     console.error("Failed to save configuration");
                     alert("Failed to save configuration");
@@ -115,13 +183,25 @@ function generateConfigForm(config) {
     }
     
     function restoreDefault() {
-        fetch('/restore_default_config').then(response => response.json()).then(data => {
+        fetch('/restore_default_config').then(response => {
+            if (response.status === 403) {
+                handleAuthFailure();
+                throw new Error('Setup access is locked');
+            }
+            return response.json();
+        }).then(data => {
             generateConfigForm(data);
         });
     }
     
     function loadConfig() {
-        fetch('/load_config').then(response => response.json()).then(data => {
+        fetch('/load_config').then(response => {
+            if (response.status === 403) {
+                handleAuthFailure();
+                throw new Error('Setup access is locked');
+            }
+            return response.json();
+        }).then(data => {
             generateConfigForm(data);
         });
     }
@@ -153,12 +233,20 @@ function generateConfigForm(config) {
                 let wifiPanel = document.getElementById('wifi-panel');
                 let wifiList = document.getElementById('wifi-list');
                 wifiList.innerHTML = '';
-                data.networks.forEach(network => {
+                data.networks.forEach(networkEntry => {
+                    const network = typeof networkEntry === 'string' ? {
+                        ssid: networkEntry,
+                        security: '',
+                        signal: '',
+                        active: networkEntry === data.current_ssid,
+                    } : networkEntry;
                     let li = document.createElement('li');
-                    li.innerText = network;
-                    li.setAttribute('data-ssid', network);
-                    li.onclick = () => connectWifi(network);
-                    if (network === data.current_ssid) {
+                    li.innerText = network.signal
+                        ? `${network.ssid} (${network.signal}%)`
+                        : network.ssid;
+                    li.setAttribute('data-ssid', network.ssid);
+                    li.onclick = () => connectWifi(network.ssid);
+                    if (network.active || network.ssid === data.current_ssid) {
                         li.classList.add('current-wifi'); // Apply the class if it's the current SSID
                         li.innerText += " ✅"; // Add the checkmark icon
                     }
@@ -181,18 +269,25 @@ function generateConfigForm(config) {
     
     function connectWifi(ssid) {
         let password = prompt("Enter the password for " + ssid);
-        if (password) {
-            fetch('/connect_wifi', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ ssid: ssid, password: password }),
-            })
-            .then(response => response.json())
-            .then(data => alert(data.message))
-            .catch(error => alert('Error: ' + error));
+        if (password === null) {
+            return;
         }
+        fetch('/connect_wifi', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ ssid: ssid, password: password }),
+        })
+        .then(response => {
+            if (response.status === 403) {
+                handleAuthFailure();
+                throw new Error('Setup access is locked');
+            }
+            return response.json();
+        })
+        .then(data => alert(data.message))
+        .catch(error => alert('Error: ' + error));
     }
     
     

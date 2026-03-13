@@ -15,6 +15,7 @@
 import threading
 import time
 import os
+import json
 import pandas as pd
 import signal
 import glob
@@ -25,6 +26,7 @@ from PIL import Image, ImageDraw
 from init_shared import shared_data  
 from comment import Commentaireia
 from logger import Logger
+from setup_access import SetupAccessManager, get_effective_setup_ap_password
 import subprocess  
 
 logger = Logger(name="display.py", level=logging.DEBUG)
@@ -36,9 +38,11 @@ class Display:
         self.config = self.shared_data.config
         self.shared_data.bjornstatustext2 = "Awakening..."
         self.commentaire_ia = Commentaireia()
+        self.setup_access_manager = SetupAccessManager(self.shared_data.currentdir)
         self.semaphore = threading.Semaphore(10)
         self.screen_reversed = self.shared_data.screen_reversed
         self.web_screen_reversed = self.shared_data.web_screen_reversed
+        self.state_cache = {}
 
         # Define frise positions for different display types
         self.frise_positions = {
@@ -199,7 +203,17 @@ class Display:
                     self.manual_mode_txt = "M"
                 else:
                     self.manual_mode_txt = "A"
-                self.shared_data.wifi_connected = self.is_wifi_connected()
+                bluetooth_state = self.load_bluetooth_state()
+                connectivity_state = self.load_connectivity_state()
+                self.shared_data.bluetooth_active = bool(
+                    bluetooth_state.get("enabled") and bluetooth_state.get("powered")
+                )
+                self.shared_data.pan_connected = bool(
+                    bluetooth_state.get("connected_devices") or connectivity_state.get("bluetooth_pan_clients")
+                )
+                self.shared_data.wifi_connected = bool(
+                    connectivity_state.get("wifi_connected", self.is_wifi_connected())
+                )
                 self.shared_data.usb_active = self.is_usb_connected()
                 self.get_open_files()
 
@@ -216,6 +230,89 @@ class Display:
             self.shared_data.bjornstatustext = self.shared_data.bjornorch_status
         else:
             pass
+
+    def load_bluetooth_state(self):
+        """Load the current Bluetooth manager state from disk."""
+        return self.load_state_file(self.shared_data.bluetooth_state_file)
+
+    def load_connectivity_state(self):
+        """Load the current connectivity manager state from disk."""
+        return self.load_state_file(self.shared_data.connectivity_state_file)
+
+    def load_state_file(self, path):
+        """Load a JSON state file only when its modification time changes."""
+        cache_entry = self.state_cache.get(path, {"mtime": None, "data": {}})
+
+        try:
+            mtime = os.path.getmtime(path)
+        except FileNotFoundError:
+            self.state_cache[path] = {"mtime": None, "data": {}}
+            return {}
+        except OSError as e:
+            logger.error(f"Error stat'ing state file {path}: {e}")
+            return cache_entry["data"]
+
+        if cache_entry["mtime"] == mtime:
+            return cache_entry["data"]
+
+        try:
+            with open(path, "r", encoding="utf-8") as handle:
+                data = json.load(handle)
+        except json.JSONDecodeError as e:
+            logger.error(f"Error decoding state file {path}: {e}")
+            return cache_entry["data"]
+        except Exception as e:
+            logger.error(f"Error loading state file {path}: {e}")
+            return cache_entry["data"]
+
+        self.state_cache[path] = {"mtime": mtime, "data": data}
+        return data
+
+    def get_status_overlay_lines(self):
+        """Return connectivity or Bluetooth overlay lines for the speech area."""
+        bluetooth_state = self.load_bluetooth_state()
+        connectivity_state = self.load_connectivity_state()
+        self.shared_data.bluetooth_active = bool(
+            bluetooth_state.get("enabled") and bluetooth_state.get("powered")
+        )
+        self.shared_data.pan_connected = bool(
+            bluetooth_state.get("connected_devices") or connectivity_state.get("bluetooth_pan_clients")
+        )
+
+        if connectivity_state.get("display_overlay"):
+            return self.build_connectivity_overlay_lines(connectivity_state)
+        if bluetooth_state.get("display_overlay"):
+            return bluetooth_state.get("display_lines", [])
+        return []
+
+    def build_connectivity_overlay_lines(self, connectivity_state):
+        lines = []
+        setup_password = get_effective_setup_ap_password(
+            self.shared_data.config.get("setup_ap_password", "")
+        )
+        setup_code = self.setup_access_manager.get_token()
+        preferred_transport = connectivity_state.get("preferred_transport")
+        portal_detected = connectivity_state.get("portal_detected")
+
+        if connectivity_state.get("setup_ap_active"):
+            lines = [
+                "SETUP AP",
+                connectivity_state.get("setup_ap_ssid", "bjorn-setup"),
+                f"PASS {setup_password}",
+                f"CODE {setup_code}",
+                f"WEB {connectivity_state.get('setup_ap_ip', '192.168.4.1')}:8000",
+            ]
+        elif preferred_transport == "bluetooth_pan":
+            lines = [
+                "CAPTIVE LOGIN" if portal_detected else "BT SECONDARY",
+                "OFF WIFI/DATA",
+                f"CODE {setup_code}",
+                f"WEB {connectivity_state.get('bluetooth_pan_ip', '172.22.0.1')}:8000",
+            ]
+        else:
+            lines = connectivity_state.get("display_lines", [])
+
+        return lines
 
     # # # def is_bluetooth_connected(self):
     # # #     """
@@ -290,8 +387,8 @@ class Display:
                 
                 if self.shared_data.wifi_connected:
                     image.paste(self.shared_data.wifi, (int(3 * self.scale_factor_x), int(3 * self.scale_factor_y)))
-                # # # if self.shared_data.bluetooth_active:
-                # # #     image.paste(self.shared_data.bluetooth, (int(23 * self.scale_factor_x), int(4 * self.scale_factor_y)))
+                if self.shared_data.bluetooth_active:
+                    image.paste(self.shared_data.bluetooth, (int(23 * self.scale_factor_x), int(4 * self.scale_factor_y)))
                 if self.shared_data.pan_connected:
                     image.paste(self.shared_data.connected, (int(104 * self.scale_factor_x), int(3 * self.scale_factor_y)))
                 if self.shared_data.usb_active:
@@ -328,7 +425,15 @@ class Display:
                 draw.line((1, 59, self.shared_data.width - 1, 59), fill=0)
                 draw.line((1, 87, self.shared_data.width - 1, 87), fill=0)
 
-                lines = self.shared_data.wrap_text(self.shared_data.bjornsay, self.shared_data.font_arialbold, self.shared_data.width - 4)
+                overlay_lines = self.get_status_overlay_lines()
+                if overlay_lines:
+                    lines = overlay_lines
+                else:
+                    lines = self.shared_data.wrap_text(
+                        self.shared_data.bjornsay,
+                        self.shared_data.font_arialbold,
+                        self.shared_data.width - 4,
+                    )
                 y_text = int(90 * self.scale_factor_y)
 
                 if self.main_image is not None:

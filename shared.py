@@ -85,12 +85,17 @@ class SharedData:
         """Files paths"""
         # Files directly under configdir
         self.shared_config_json = os.path.join(self.configdir, 'shared_config.json')
+        self.bluetooth_state_file = os.path.join(self.configdir, 'bluetooth_state.json')
+        self.connectivity_state_file = os.path.join(self.configdir, 'connectivity_state.json')
+        self.setup_access_file = os.path.join(self.configdir, 'setup_access.json')
         self.actions_file = os.path.join(self.configdir, 'actions.json')
         # Files directly under resourcesdir
         self.commentsfile = os.path.join(self.commentsdir, 'comments.json')
         # Files directly under datadir
         self.netkbfile = os.path.join(self.datadir, "netkb.csv")
         self.livestatusfile = os.path.join(self.datadir, 'livestatus.csv')
+        self.runtime_dir = os.path.join(self.currentdir, 'run')
+        self.wifi_connect_lock_file = os.path.join(self.runtime_dir, 'wifi_connect.lock')
         # Files directly under vulnerabilities_dir
         self.vuln_summary_file = os.path.join(self.vulnerabilities_dir, 'vulnerability_summary.csv')
         self.vuln_scan_progress_file = os.path.join(self.vulnerabilities_dir, 'scan_progress.json')
@@ -143,6 +148,20 @@ class SharedData:
             "ref_width" :122 ,
             "ref_height" : 250,
             "epd_type": "epd2in13_V4",
+            "bluetooth_pairing_enabled": False,
+            "bluetooth_discoverable_timeout": 300,
+            "bluetooth_agent_capability": "DisplayYesNo",
+            "bluetooth_ssh_user": "bjorn",
+            "bluetooth_pairing_pin": "",
+            "bluetooth_alias": "bjorn",
+            "bluetooth_pan_enabled": True,
+            "bluetooth_pan_address": "172.22.0.1/24",
+            "setup_ap_enabled": True,
+            "setup_ap_ssid": "bjorn-setup",
+            "setup_ap_password": "bjornsetup",
+            "setup_ap_address": "192.168.4.1/24",
+            "setup_ap_boot_timeout": 30,
+            "setup_ap_idle_timeout": 0,
             
             
             "__title_lists__": "List Settings",
@@ -210,6 +229,7 @@ class SharedData:
     def setup_environment(self):
         """Setup the environment with the necessary directories and files."""
         os.system('cls' if os.name == 'nt' else 'clear')
+        os.makedirs(self.runtime_dir, exist_ok=True)
         self.save_config()
         self.generate_actions_json()
         self.delete_webconsolelog()
@@ -248,7 +268,6 @@ class SharedData:
             logger.info("Initializing EPD display...")
             time.sleep(1)
             self.epd_helper = EPDHelper(self.config["epd_type"])
-            self.epd_helper = EPDHelper(self.epd_type)
             if self.config["epd_type"] == "epd2in7":
                 logger.info("EPD type: epd2in7 screen reversed")
                 self.screen_reversed = False

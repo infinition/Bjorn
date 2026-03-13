@@ -41,6 +41,7 @@ The e-Paper HAT display and web interface make it easy to monitor and interact w
 - **System Attacks**: Conducts brute-force attacks on various services (FTP, SSH, SMB, RDP, Telnet, SQL).
 - **File Stealing**: Extracts data from vulnerable services.
 - **User Interface**: Real-time display on the e-Paper HAT and web interface for monitoring and interaction.
+- **Headless Bluetooth Pairing**: Optional Bluetooth pairing mode shows the pairing code and SSH target directly on the e-Paper display.
 
 ![Bjorn Display](https://github.com/infinition/Bjorn/assets/37984399/bcad830d-77d6-4f3e-833d-473eadd33921)
 
@@ -90,6 +91,12 @@ sudo chmod +x install_bjorn.sh && sudo ./install_bjorn.sh
 ```
 
 For **detailed information** about **installation** process go to [Install Guide](INSTALL.md)
+
+To enable the optional Bluetooth pairing screen after installation, set `"bluetooth_pairing_enabled": true` in `config/shared_config.json`, adjust `"bluetooth_ssh_user"` if needed, then restart `bjorn.service` and `bjorn-bluetooth.service`.
+
+Bjorn also supports two headless provisioning paths:
+- fallback setup AP at `http://192.168.4.1:8000` as the primary phone setup path when it cannot join Wi-Fi
+- Bluetooth PAN at `http://172.22.0.1:8000` as a secondary Android-only link; some phones require disabling Wi-Fi and mobile data before the PAN URL is reachable
 
 ## ⚡ Quick Start
 

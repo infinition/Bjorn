@@ -96,6 +96,7 @@ sudo apt-get update && sudo apt-get upgrade -y
   libopenblas-dev \
   bluez-tools \
   bluez \
+  network-manager \
   dhcpcd5 \
   bridge-utils \
   python3-pil
@@ -311,7 +312,102 @@ chmod +x /home/bjorn/Bjorn/kill_port_8000.sh
 ```
 
 
-##### 7.3: USB Gadget Configuration
+##### 7.3: Bluetooth Pairing Access
+
+Create the Bluetooth pairing service:
+
+```bash
+sudo vi /etc/systemd/system/bjorn-bluetooth.service
+```
+
+Add:
+
+```ini
+[Unit]
+Description=Bjorn Bluetooth Pairing Service
+After=bluetooth.service local-fs.target
+Requires=bluetooth.service
+
+[Service]
+ExecStart=/usr/bin/python3 /home/bjorn/Bjorn/bluetooth_manager.py
+WorkingDirectory=/home/bjorn/Bjorn
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable pairing mode in `config/shared_config.json`:
+
+```json
+{
+  "bluetooth_pairing_enabled": true,
+  "bluetooth_ssh_user": "bjorn"
+}
+```
+
+Reload and start the services:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable bjorn.service bjorn-bluetooth.service bjorn-connectivity.service
+sudo systemctl restart bjorn.service bjorn-bluetooth.service bjorn-connectivity.service
+```
+
+When pairing mode is enabled, Bjorn shows the pairing prompt or code on the e-paper display and also shows the SSH user and best available host/IP.
+
+##### 7.4: Connectivity Provisioning
+
+Create the connectivity manager service:
+
+```bash
+sudo vi /etc/systemd/system/bjorn-connectivity.service
+```
+
+Add:
+
+```ini
+[Unit]
+Description=Bjorn Connectivity Manager
+After=NetworkManager.service bluetooth.service local-fs.target
+Requires=NetworkManager.service bluetooth.service
+
+[Service]
+ExecStart=/usr/bin/python3 /home/bjorn/Bjorn/connectivity_manager.py
+WorkingDirectory=/home/bjorn/Bjorn
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Optional provisioning defaults in `config/shared_config.json`:
+
+```json
+{
+  "bluetooth_pan_enabled": true,
+  "bluetooth_pan_address": "172.22.0.1/24",
+  "setup_ap_enabled": true,
+  "setup_ap_ssid": "bjorn-setup",
+  "setup_ap_password": "bjornsetup",
+  "setup_ap_address": "192.168.4.1/24",
+  "setup_ap_boot_timeout": 30
+}
+```
+
+Behavior:
+- if Bjorn is offline after the boot timeout, it starts the `bjorn-setup` hotspot
+- the setup AP at `http://192.168.4.1:8000` is the primary phone provisioning path
+- Bluetooth PAN is available at `http://172.22.0.1:8000` as a secondary Android-only link
+- if the Bluetooth PAN URL does not load, turn off Wi-Fi and mobile data on the phone or fall back to the setup AP
+
+##### 7.5: USB Gadget Configuration
 
 Modify `/boot/firmware/cmdline.txt`:
 
