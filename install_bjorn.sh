@@ -226,7 +226,7 @@ install_dependencies() {
         "libssl-dev"
         "libgpiod-dev"
         "libi2c-dev"
-        "libatlas-base-dev"
+        "libopenblas-dev"
         "build-essential"
     )
     
