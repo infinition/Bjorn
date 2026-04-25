@@ -7,7 +7,10 @@ import json
 import csv
 import zipfile
 import uuid
-import cgi
+try:
+    import legacy_cgi as cgi
+except ImportError:
+    import cgi
 import io
 import importlib
 import logging
