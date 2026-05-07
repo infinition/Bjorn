@@ -133,5 +133,5 @@ $RECYCLE.BIN/
 *.sln
 *.sw?
 
-scripts
+/scripts/
 */certs/

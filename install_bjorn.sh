@@ -215,6 +215,7 @@ install_dependencies() {
         "libopenblas-dev"
         "bluez-tools"
         "bluez"
+        "network-manager"
         "dhcpcd5"
         "bridge-utils"
         "python3-pil"
@@ -366,9 +367,45 @@ StandardOutput=inherit
 StandardError=inherit
 Restart=always
 User=root
+LimitNOFILE=65535
 
-# Check open files and restart if it reached the limit (ulimit -n buffer of 1000)
-ExecStartPost=/bin/bash -c 'FILE_LIMIT=\$(ulimit -n); THRESHOLD=\$(( FILE_LIMIT - 1000 )); while :; do TOTAL_OPEN_FILES=\$(lsof | wc -l); if [ "\$TOTAL_OPEN_FILES" -ge "\$THRESHOLD" ]; then echo "File descriptor threshold reached: \$TOTAL_OPEN_FILES (threshold: \$THRESHOLD). Restarting service."; systemctl restart bjorn.service; exit 0; fi; sleep 10; done &'
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    cat > /etc/systemd/system/bjorn-bluetooth.service << EOF
+[Unit]
+Description=Bjorn Bluetooth Pairing Service
+After=bluetooth.service local-fs.target
+Requires=bluetooth.service
+
+[Service]
+ExecStart=/usr/bin/python3 /home/${BJORN_USER}/Bjorn/bluetooth_manager.py
+WorkingDirectory=/home/${BJORN_USER}/Bjorn
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    cat > /etc/systemd/system/bjorn-connectivity.service << EOF
+[Unit]
+Description=Bjorn Connectivity Manager
+After=NetworkManager.service bluetooth.service local-fs.target
+Wants=bluetooth.service
+Requires=NetworkManager.service
+
+[Service]
+ExecStart=/usr/bin/python3 /home/${BJORN_USER}/Bjorn/connectivity_manager.py
+WorkingDirectory=/home/${BJORN_USER}/Bjorn
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=root
+LimitNOFILE=65535
 
 [Install]
 WantedBy=multi-user.target
@@ -381,6 +418,8 @@ EOF
     # Enable and start services
     systemctl daemon-reload
     systemctl enable bjorn.service
+    systemctl enable bjorn-bluetooth.service
+    systemctl enable bjorn-connectivity.service
 
     check_success "Services setup completed"
 }
@@ -630,7 +669,3 @@ main() {
 }
 
 main
-
-
-
-

@@ -60,6 +60,18 @@ stop_services() {
         systemctl disable bjorn
     fi
 
+    if systemctl is-active --quiet "bjorn-bluetooth"; then
+        log "INFO" "Stopping bjorn-bluetooth service..."
+        systemctl stop bjorn-bluetooth
+        systemctl disable bjorn-bluetooth
+    fi
+
+    if systemctl is-active --quiet "bjorn-connectivity"; then
+        log "INFO" "Stopping bjorn-connectivity service..."
+        systemctl stop bjorn-connectivity
+        systemctl disable bjorn-connectivity
+    fi
+
     # Stop and disable usb-gadget service
     if systemctl is-active --quiet "usb-gadget"; then
         log "INFO" "Stopping usb-gadget service..."
@@ -80,6 +92,8 @@ stop_services() {
 remove_service_files() {
     log "INFO" "Removing service files..."
     rm -f /etc/systemd/system/bjorn.service
+    rm -f /etc/systemd/system/bjorn-bluetooth.service
+    rm -f /etc/systemd/system/bjorn-connectivity.service
     rm -f /etc/systemd/system/usb-gadget.service
     rm -f /usr/local/bin/usb-gadget.sh
     systemctl daemon-reload

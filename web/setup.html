@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bjorn Setup</title>
+    <link rel="stylesheet" href="web/css/styles.css?v=setup3">
+    <script src="web/scripts/setup.js?v=setup3" defer></script>
+    <style>
+        html {
+            height: auto;
+            min-height: 100%;
+            overflow-y: auto;
+        }
+        body.setup-body {
+            min-height: 100vh;
+            min-height: 100dvh;
+            height: auto;
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y;
+        }
+    </style>
+</head>
+<body class="setup-body">
+    <main class="setup-shell">
+        <section class="setup-hero">
+            <p class="setup-kicker">Headless Provisioning</p>
+            <h1>Bjorn Setup</h1>
+            <p id="setup-summary">Loading connectivity state...</p>
+        </section>
+
+        <section class="setup-card">
+            <h2>Current Access</h2>
+            <div id="setup-state-grid" class="setup-grid"></div>
+        </section>
+
+        <section class="setup-card" id="auth-card">
+            <h2>Unlock Changes</h2>
+            <p id="auth-status">Checking whether setup authentication is required...</p>
+            <form id="auth-form" class="setup-form">
+                <label for="auth-token">Setup Code</label>
+                <input id="auth-token" name="auth_token" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code from Bjorn's screen" autocomplete="one-time-code">
+
+                <div class="setup-actions">
+                    <button type="submit">Unlock Setup</button>
+                    <button type="button" id="auth-logout">Forget This Browser</button>
+                </div>
+            </form>
+            <p id="auth-message" class="setup-message"></p>
+        </section>
+
+        <section class="setup-card">
+            <h2>Join Wi-Fi</h2>
+            <form id="wifi-form" class="setup-form">
+                <label for="ssid">SSID</label>
+                <input id="ssid" name="ssid" type="text" placeholder="Network name" autocomplete="off" required>
+
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password" placeholder="Password (leave blank for open Wi-Fi)" autocomplete="current-password">
+
+                <div class="setup-actions">
+                    <button type="submit">Connect Bjorn</button>
+                    <button type="button" id="scan-button">Scan Networks</button>
+                </div>
+            </form>
+            <p id="wifi-message" class="setup-message"></p>
+            <ul id="wifi-networks" class="setup-network-list"></ul>
+            <p id="portal-helper" class="setup-note" hidden>
+                If a captive portal does not open automatically, visit
+                <a href="http://neverssl.com" target="_blank" rel="noreferrer">http://neverssl.com</a>
+                after Bjorn joins the target Wi-Fi.
+            </p>
+        </section>
+
+        <section class="setup-card">
+            <h2>Full Interface</h2>
+            <p>You can still use the regular Bjorn UI while provisioning.</p>
+            <div class="setup-actions">
+                <a class="setup-link" href="/index.html">Open Playground</a>
+                <a class="setup-link" href="/config.html">Open Config</a>
+                <a class="setup-link" href="/bjorn.html">Open Screen View</a>
+            </div>
+            <p class="setup-note">Use the fallback setup AP whenever possible. Bluetooth PAN is a secondary Android-only link and may require turning off Wi-Fi and mobile data on the phone before <code>http://172.22.0.1:8000</code> will open. iPhone users should use the setup AP.</p>
+        </section>
+    </main>
+</body>
+</html>
