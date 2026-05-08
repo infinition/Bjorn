@@ -135,7 +135,7 @@ Change the value according to your screen model:
 - For 2.13 V2: "epd_type": "epd2in13_V2",
 - For 2.13 V3: "epd_type": "epd2in13_V3",
 - For 2.13 V4: "epd_type": "epd2in13_V4",
-
+- For 2.7: "epd_type": "epd2in7",
 Press Esc to exit insert mode
 Type :wq and press Enter to save and quit
 
