@@ -135,3 +135,8 @@ $RECYCLE.BIN/
 
 scripts
 */certs/
+
+# Bjorn output data
+data/output/*
+data/livestatus.csv
+data/netkb.csv
