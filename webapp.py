@@ -6,6 +6,7 @@ import socketserver
 import logging
 import sys
 import signal
+import base64
 import os
 import gzip
 import io
@@ -23,6 +24,10 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         self.shared_data = shared_data
         self.web_utils = WebUtils(shared_data, logger)
+        # Web auth config
+        self.web_auth_enabled = bool(self.shared_data.config.get('web_auth', False))
+        self.web_auth_user = self.shared_data.config.get('web_user', '')
+        self.web_auth_password = self.shared_data.config.get('web_password', '')
         super().__init__(*args, **kwargs)
 
     def log_message(self, format, *args):
@@ -57,6 +62,11 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         self.send_gzipped_response(content, content_type)
 
     def do_GET(self):
+        # Enforce Basic Auth if enabled
+        if self.web_auth_enabled:
+            if not self.check_auth():
+                self.request_auth()
+                return
         # Handle GET requests. Serve the HTML interface and the EPD image.
         if self.path == '/index.html' or self.path == '/':
             self.serve_file_gzipped(os.path.join(self.shared_data.webdir, 'index.html'), 'text/html')
@@ -116,6 +126,11 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             super().do_GET()
 
     def do_POST(self):
+        # Enforce Basic Auth for POST requests
+        if self.web_auth_enabled:
+            if not self.check_auth():
+                self.request_auth()
+                return
         # Handle POST requests for saving configuration, connecting to Wi-Fi, clearing files, rebooting, and shutting down.
         if self.path == '/save_config':
             self.web_utils.save_configuration(self)
@@ -150,6 +165,29 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
 
+    def check_auth(self):
+        """Validate HTTP Basic Authorization header against configured credentials."""
+        auth_header = self.headers.get('Authorization')
+        if not auth_header:
+            return False
+        try:
+            scheme, encoded = auth_header.split(' ', 1)
+            if scheme.lower() != 'basic':
+                return False
+            decoded = base64.b64decode(encoded.strip()).decode('utf-8')
+            user, pwd = decoded.split(':', 1)
+            return user == self.web_auth_user and pwd == self.web_auth_password
+        except Exception:
+            return False
+
+    def request_auth(self):
+        """Send a 401 response that enables Basic auth in the client."""
+        self.send_response(401)
+        self.send_header('WWW-Authenticate', 'Basic realm="Bjorn Web UI"')
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+        self.wfile.write(b'Authentication required')
+
 class WebThread(threading.Thread):
     """
     Thread to run the web server serving the EPD display interface.
@@ -167,7 +205,7 @@ class WebThread(threading.Thread):
         """
         while not self.shared_data.webapp_should_exit:
             try:
-                with socketserver.TCPServer(("", self.port), self.handler_class) as httpd:
+                    with socketserver.TCPServer(("127.0.0.1", self.port), self.handler_class) as httpd:
                     self.httpd = httpd
                     logger.info(f"Serving at port {self.port}")
                     while not self.shared_data.webapp_should_exit:

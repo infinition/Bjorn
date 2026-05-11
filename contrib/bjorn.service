@@ -1,0 +1,21 @@
+[Unit]
+Description=Bjorn daemon
+After=network.target
+
+[Service]
+Type=simple
+# Change User and Group to the dedicated account you created (e.g., 'bjorn')
+User=bjorn
+Group=bjorn
+WorkingDirectory=/opt/bjorn
+# Use the system python or a virtualenv python binary
+ExecStart=/opt/bjorn/.venv/Scripts/python.exe /opt/bjorn/Bjorn.py
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+
+# Notes:
+# - Adjust WorkingDirectory and ExecStart to match where you installed Bjorn.
+# - On Linux systems using typical virtualenvs, ExecStart might be `/opt/bjorn/.venv/bin/python3 /opt/bjorn/Bjorn.py`.

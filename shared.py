@@ -138,6 +138,9 @@ class SharedData:
             "image_display_delaymax": 8,
             "scan_interval": 180,
             "scan_vuln_interval": 900,
+            "web_auth": True,
+            "web_user": "bjorn",
+            "web_password": "",  # set a strong password after install
             "failed_retry_delay": 600,
             "success_retry_delay": 900, 
             "ref_width" :122 ,
