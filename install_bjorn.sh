@@ -374,6 +374,24 @@ ExecStartPost=/bin/bash -c 'FILE_LIMIT=\$(ulimit -n); THRESHOLD=\$(( FILE_LIMIT 
 WantedBy=multi-user.target
 EOF
 
+    cat > /etc/systemd/system/bjorn-bluetooth.service << EOF
+[Unit]
+Description=Bjorn Bluetooth Pairing Service
+After=bluetooth.service local-fs.target
+Requires=bluetooth.service
+
+[Service]
+ExecStart=/usr/bin/python3 /home/${BJORN_USER}/Bjorn/bluetooth_manager.py
+WorkingDirectory=/home/${BJORN_USER}/Bjorn
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
     # Configure PAM
     echo "session required pam_limits.so" >> /etc/pam.d/common-session
     echo "session required pam_limits.so" >> /etc/pam.d/common-session-noninteractive
@@ -381,6 +399,7 @@ EOF
     # Enable and start services
     systemctl daemon-reload
     systemctl enable bjorn.service
+    systemctl enable bjorn-bluetooth.service
 
     check_success "Services setup completed"
 }
@@ -630,7 +649,6 @@ main() {
 }
 
 main
-
 
 
 

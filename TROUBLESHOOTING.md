@@ -30,9 +30,11 @@ journalctl -fu bjorn.service
 
 # Check service status
 sudo systemctl status bjorn.service
+sudo systemctl status bjorn-bluetooth.service
 
 # View detailed logs
 sudo journalctl -u bjorn.service -f
+sudo journalctl -u bjorn-bluetooth.service -f
 
 or
 
