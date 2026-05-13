@@ -13,3 +13,5 @@ pysmb==1.2.10
 pymysql==1.1.1
 sqlalchemy==2.0.36
 python-nmap==0.7.1
+legacy-cgi
+telnetlib3

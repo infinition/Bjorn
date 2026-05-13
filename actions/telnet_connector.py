@@ -5,7 +5,10 @@ and logs the successful login attempts.
 
 import os
 import pandas as pd
-import telnetlib
+try:
+    import telnetlib
+except ImportError:
+    import telnetlib3 as telnetlib
 import threading
 import logging
 import time
