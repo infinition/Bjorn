@@ -88,13 +88,13 @@ class Display:
         """Periodically update the shared data with the latest system information."""
         while not self.shared_data.display_should_exit:
             self.update_shared_data()
-            time.sleep(25)
+            time.sleep(self.shared_data.shared_data_update_delay)
 
     def schedule_update_vuln_count(self):
         """Periodically update the vulnerability count on the display."""
         while not self.shared_data.display_should_exit:
             self.update_vuln_count()
-            time.sleep(300)
+            time.sleep(self.shared_data.vuln_count_display_delay)
 
     def update_main_image(self):
         """Update the main image on the display with the latest immagegen data."""
