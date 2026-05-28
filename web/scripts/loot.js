@@ -16,24 +16,28 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 function generateFileListHTML(files, path, indent) {
-    let html = '<ul>';
+    let html = '<ul class="tree-list">';
     files.forEach(file => {
         if (file.is_directory) {
-            const icon = path === "/" ? "web/images/mainfolder.png" : "web/images/subfolder.png";
+            const icon = path === "/" ? "/web/images/mainfolder.png" : "/web/images/subfolder.png";
             html += `
-                <li style="margin-left: ${indent * 5}px;">
-                    <img src="${icon}" alt="Folder Icon" style="height: 20px;">
-                    <strong>${file.name}</strong>
-                    <ul>
-                        ${generateFileListHTML(file.children || [], `${path}/${file.name}`, indent + 1)}
-                    </ul>
+                <li class="tree-branch" style="padding-left: ${indent > 0 ? 12 : 0}px;">
+                    <div class="tree-item folder-item">
+                        <img src="${icon}" alt="Folder" class="tree-icon">
+                        <span>${file.name}</span>
+                    </div>
+                    ${generateFileListHTML(file.children || [], `${path}/${file.name}`, indent + 1)}
                 </li>`;
         } else {
-            const icon = "web/images/file.png";
+            const icon = "/web/images/file.png";
             html += `
-                <li style="margin-left: ${indent * 5}px;">
-                    <img src="${icon}" alt="File Icon" style="height: 20px;">
-                    <a href="/download_file?path=${encodeURIComponent(file.path)}">${file.name}</a>
+                <li class="tree-branch" style="padding-left: ${indent > 0 ? 12 : 0}px;">
+                    <div class="tree-item file-item">
+                        <a href="/download_file?path=${encodeURIComponent(file.path)}">
+                            <img src="${icon}" alt="File" class="tree-icon">
+                            <span>${file.name}</span>
+                        </a>
+                    </div>
                 </li>`;
         }
     });

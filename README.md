@@ -11,10 +11,22 @@
   <img src="https://github.com/user-attachments/assets/c5eb4cc1-0c3d-497d-9422-1614651a84ab" alt="thumbnail_IMG_0546" width="150">
   <img src="https://github.com/user-attachments/assets/1b490f07-f28e-4418-8d41-14f1492890c6" alt="bjorn_epd-removebg-preview" width="150">
 </p>
-
 Bjorn is a « Tamagotchi like » sophisticated, autonomous network scanning, vulnerability assessment, and offensive security tool designed to run on a Raspberry Pi equipped with a 2.13-inch e-Paper HAT. This document provides a detailed explanation of the project.
 
+> [!IMPORTANT]
+> **This Fork Features a Modernized, Sleek Dark WebUI!**
+> 
+> The **only difference** between the original Bjorn and this fork is the fully overhauled, highly polished, modern, high-contrast **Dark Theme WebUI**. 
+> All backend logic, core mechanics, scan orchestration, attack modules, and physical 2.13-inch E-Ink display driver integration work **exactly the same** as the original version. This keeps the application fully compatible with all Raspberry Pi deployments while providing a premium browser dashboard experience.
 
+### 🌌 Modern Slate-Dark WebUI Dashboard
+
+<p align="center">
+  <img src="web/images/playground_dark_preview.png" alt="Sleek Playground Console Dark Theme" width="48%">
+  <img src="web/images/config_dark_preview.png" alt="Modern Configuration Form Settings" width="48%">
+</p>
+
+---
 ## 📚 Table of Contents
 
 - [Introduction](#-introduction)

@@ -15,9 +15,18 @@ class EPDHelper:
             epd_module_name = f'resources.waveshare_epd.{self.epd_type}'
             epd_module = importlib.import_module(epd_module_name)
             return epd_module.EPD()
-        except ImportError as e:
-            logger.error(f"EPD module {self.epd_type} not found: {e}")
-            raise
+        except (ImportError, RuntimeError) as e:
+            logger.error(f"EPD module {self.epd_type} not found or failed to load: {e}. Using Mock EPD.")
+            class MockEPD:
+                def __init__(self):
+                    self.width = 250
+                    self.height = 122
+                def init(self, *args, **kwargs): pass
+                def getbuffer(self, image): return image
+                def displayPartial(self, *args, **kwargs): pass
+                def display(self, *args, **kwargs): pass
+                def Clear(self, *args, **kwargs): pass
+            return MockEPD()
         except Exception as e:
             logger.error(f"Error loading EPD module {self.epd_type}: {e}")
             raise

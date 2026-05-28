@@ -12,44 +12,60 @@
 </head>
 <body>
     <div class="toolbar" id="mainToolbar">
+        <a href="/index.html" class="logo-link" title="Home">
+            <img src="/web/images/bjorn_icon.png" alt="Bjorn">
+        </a>
         <button type="button" onclick="window.location.href='/index.html'" title="Playground">
-            <img src="/web/images/console_icon.png" alt="Bjorn" style="height: 50px;">
+            <img src="/web/images/console_icon.png" alt="Playground">
+            <span>Playground</span>
         </button>
-        <button type="button" onclick="window.location.href='/config.html'" title="Config">
-            <img src="/web/images/config_icon.png" alt="Icon_config" style="height: 50px;">
+        <button type="button" class="active" onclick="window.location.href='/config.html'" title="Config">
+            <img src="/web/images/config_icon.png" alt="Config">
+            <span>Config</span>
         </button>
         <button type="button" onclick="window.location.href='/network.html'" title="Network">
-            <img src="/web/images/network_icon.png" alt="Icon_network" style="height: 50px;">
+            <img src="/web/images/network_icon.png" alt="Network">
+            <span>Network</span>
         </button>
         <button type="button" onclick="window.location.href='/netkb.html'" title="NetKB">
-            <img src="/web/images/netkb_icon.png" alt="Icon_netkb" style="height: 50px;">
+            <img src="/web/images/netkb_icon.png" alt="NetKB">
+            <span>NetKB</span>
         </button>
         <button type="button" onclick="window.location.href='/credentials.html'" title="Credentials">
-            <img src="/web/images/cred_icon.png" alt="Icon_cred" style="height: 50px;">
+            <img src="/web/images/cred_icon.png" alt="Credentials">
+            <span>Credentials</span>
         </button>
         <button type="button" onclick="window.location.href='/loot.html'" title="Loot">
-            <img src="/web/images/loot_icon.png" alt="Icon_loot" style="height: 50px;">
+            <img src="/web/images/loot_icon.png" alt="Loot">
+            <span>Loot</span>
         </button>
     </div>
     <div class="console-toolbar">
-        <button type="button" class="toolbar-button" onclick="adjustConfigFontSize(-1)" title="-">
-            <img src="/web/images/less.png" alt="Icon_less" style="height: 50px;">
-        </button>
-        <button type="button" class="toolbar-button" onclick="saveConfig()" title="Save">
-            <img src="/web/images/save.png" alt="Icon_plus" style="height: 50px;">
-        </button>
-        <button type="button" class="toolbar-button" onclick="restoreDefault()" title="Restore Default">
-            <img src="/web/images/restore.png" alt="Icon_plus" style="height: 50px;">
-        </button>
-        <button id="toggle-toolbar" type="button" class="toolbar-button" onclick="toggleConfigToolbar()" data-open="false">
-            <img id="toggle-icon" src="/web/images/hide.png" alt="Toggle Toolbar" style="height: 50px;">
-        </button>
-        <button type="button" class="toolbar-button" onclick="toggleWifiPanel()">
-            <img src="/web/images/wifi.png" alt="wifi" style="height: 50px;"> 
-        </button>
-        <button type="button" class="toolbar-button" onclick="adjustConfigFontSize(1)" title="+">
-            <img src="/web/images/plus.png" alt="Icon_plus" style="height: 50px;">
-        </button>
+        <div class="toolbar-left">
+            <button type="button" class="toolbar-button success-btn" onclick="saveConfig()" title="Save">
+                <img src="/web/images/save.png" alt="Save">
+                <span>Save Settings</span>
+            </button>
+            <button type="button" class="toolbar-button secondary-btn" onclick="restoreDefault()" title="Restore Default">
+                <img src="/web/images/restore.png" alt="Restore">
+                <span>Restore Defaults</span>
+            </button>
+            <button type="button" class="toolbar-button info-btn" onclick="toggleWifiPanel()" title="Wi-Fi">
+                <img src="/web/images/wifi.png" alt="wifi"> 
+                <span>Wi-Fi Setup</span>
+            </button>
+        </div>
+        <div class="toolbar-right">
+            <button type="button" class="toolbar-button" onclick="adjustConfigFontSize(-1)" title="Decrease Font Size">
+                <img src="/web/images/less.png" alt="Icon_less">
+            </button>
+            <button type="button" class="toolbar-button" onclick="adjustConfigFontSize(1)" title="Increase Font Size">
+                <img src="/web/images/plus.png" alt="Icon_plus">
+            </button>
+            <button id="toggle-toolbar" type="button" class="toolbar-button" onclick="toggleConfigToolbar()" data-open="false" title="Hide Navigation">
+                <img id="toggle-icon" src="/web/images/hide.png" alt="Toggle Toolbar">
+            </button>
+        </div>
     </div>
     <div class="config-container">
         <form class="config-form"></form>
