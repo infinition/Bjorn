@@ -64,7 +64,7 @@ The e-Paper HAT display and web interface make it easy to monitor and interact w
 
 ![image](https://github.com/user-attachments/assets/e8d276be-4cb2-474d-a74d-b5b6704d22f5)
 
-I did not develop Bjorn for the raspberry pi zero w2 64bits, but several feedbacks have attested that the installation worked perfectly.
+I did not develop Bjorn for the Raspberry Pi Zero 2 W 64-bit OS, but several users have reported that the installation works well.
 
 - Raspberry Pi OS installed. 
     - Stable:
@@ -75,8 +75,8 @@ I did not develop Bjorn for the raspberry pi zero w2 64bits, but several feedbac
 - 2.13-inch e-Paper HAT connected to GPIO pins.
 
 
-At the moment the paper screen v2  v4 have been tested and implemented.
-I juste hope the V1 & V3 will work the same.
+At the moment, e-Paper HAT v2 and v4 have been tested and implemented.
+I hope v1 and v3 will work the same way.
 
 ### 🔨 Installation
 
@@ -89,19 +89,19 @@ sudo chmod +x install_bjorn.sh && sudo ./install_bjorn.sh
 # Choose the choice 1 for automatic installation. It may take a while as a lot of packages and modules will be installed. You must reboot at the end.
 ```
 
-For **detailed information** about **installation** process go to [Install Guide](INSTALL.md)
+For **detailed information** about the **installation** process, go to the [Install Guide](INSTALL.md)
 
 ## ⚡ Quick Start
 
-**Need help ? You struggle to find Bjorn's IP after the installation ?**
+**Need help? Struggling to find Bjorn's IP after installation?**
 Use my Bjorn Detector & SSH Launcher :
 
 [https://github.com/infinition/bjorn-detector](https://github.com/infinition/bjorn-detector)
 
 ![ezgif-1-a310f5fe8f](https://github.com/user-attachments/assets/182f82f0-5c3a-48a9-a75e-37b9cfa2263a)
 
-**Hmm, You still need help ?**
-For **detailed information** about **troubleshooting** go to [Troubleshooting](TROUBLESHOOTING.md)
+**Still need help?**
+For **detailed information** about **troubleshooting**, go to [Troubleshooting](TROUBLESHOOTING.md)
 
 **Quick Installation**: you can use the fastest way to install **Bjorn** [Getting Started](#-getting-started)
 
@@ -153,7 +153,7 @@ The project welcomes contributions in:
 - Documentation.
 - Feature improvements.
 
-For **detailed information** about **contributing** process go to [Contributing Docs](CONTRIBUTING.md), [Code Of Conduct](CODE_OF_CONDUCT.md) and [Development Guide](DEVELOPMENT.md).
+For **detailed information** about the **contributing** process, go to [Contributing Docs](CONTRIBUTING.md), [Code Of Conduct](CODE_OF_CONDUCT.md), and [Development Guide](DEVELOPMENT.md).
 
 ## 📫 Contact
 

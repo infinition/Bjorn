@@ -29,7 +29,7 @@ https://www.raspberrypi.com/software/
 
 ![image](https://github.com/user-attachments/assets/e8d276be-4cb2-474d-a74d-b5b6704d22f5)
 
-I did not develop Bjorn for the raspberry pi zero w2 64bits, but several feedbacks have attested that the installation worked perfectly.
+I did not develop Bjorn for the Raspberry Pi Zero 2 W 64-bit OS, but several users have reported that the installation works well.
 
 - Raspberry Pi OS installed. 
     - Stable:
@@ -41,8 +41,8 @@ I did not develop Bjorn for the raspberry pi zero w2 64bits, but several feedbac
 
 
 
-At the moment the paper screen v2  v4 have been tested and implemented.
-I juste hope the V1 & V3 will work the same.
+At the moment, e-Paper HAT v2 and v4 have been tested and implemented.
+I hope v1 and v3 will work the same way.
  
 ### ⚡ Quick Install
 
