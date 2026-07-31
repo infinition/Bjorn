@@ -180,6 +180,42 @@ class BjornLifecycleTests(unittest.TestCase):
 
         self.assertEqual(alive_names, ["StuckWorker"])
 
+    def test_shutdown_wait_shares_one_deadline_across_all_threads(self):
+        clock = SimpleNamespace(now=0.0)
+
+        class BlockingThread(FakeThread):
+            def is_alive(self):
+                return True
+
+            def join(self, timeout=None):
+                self.join_timeouts.append(timeout)
+                clock.now += timeout + 0.000001
+
+        stuck_threads = [
+            BlockingThread(name=f"StuckWorker{index}")
+            for index in range(6)
+        ]
+
+        with patch.object(
+            self.bjorn_module.time,
+            "monotonic",
+            side_effect=lambda: clock.now,
+        ):
+            alive_names = self.bjorn_module.wait_for_shutdown_threads(
+                stuck_threads,
+                timeout=0.05,
+            )
+
+        allocated_wait = sum(
+            sum(thread.join_timeouts)
+            for thread in stuck_threads
+        )
+        self.assertLessEqual(allocated_wait, 0.05)
+        self.assertEqual(
+            alive_names,
+            [thread.name for thread in stuck_threads],
+        )
+
     def test_shutdown_wait_reports_a_thread_with_custom_join_failure(self):
         gpio_thread = FakeThread(
             name="GPIOHold",

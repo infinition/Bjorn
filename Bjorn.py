@@ -158,8 +158,12 @@ def wait_for_shutdown_threads(threads, timeout=SHUTDOWN_TIMEOUT_SECONDS):
                 for thread in alive_threads
             ]
 
-        join_slice = min(0.25, remaining)
-        for thread in alive_threads:
+        for index, thread in enumerate(alive_threads):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            threads_remaining = len(alive_threads) - index
+            join_slice = min(0.25, remaining / threads_remaining)
             try:
                 thread.join(timeout=join_slice)
             except Exception as error:
