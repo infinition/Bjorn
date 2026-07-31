@@ -446,6 +446,8 @@ credentials, configuring a real salted test verifier through the installed
 command, checking mode `0600`, and using status/disable/enable. Linux requires
 the management command to be a real symbolic link. The temporary root is
 removed automatically and no live Bjorn file or system command path changes.
+The canonical runner requires pandas so the real CSV type-inference regression
+tests cannot be silently skipped.
 
 The runtime level verifies that every installed runtime file matches the tested
 checkout. The service PID and authenticated web response must remain stable,
@@ -467,6 +469,13 @@ The scanner also disables Rich's automatic progress refresh thread. Progress
 updates remain visible, but run synchronously in the orchestrator-owned scan
 thread so a daemon refresh cannot write to the terminal during interpreter
 shutdown.
+
+Live-status aggregation treats the semicolon-separated `Ports` column as text
+at the CSV boundary. This prevents a single numeric port plus empty cells from
+being inferred as floats by pandas. Empty port tokens are ignored, and a
+failed aggregation stops without writing partial counters or logging a false
+success. The live runtime validation rejects both aggregation and result-write
+errors.
 
 After all Bjorn-owned workers have stopped, the lifecycle handler gives any
 remaining Python library thread a bounded grace period. Residual threads are

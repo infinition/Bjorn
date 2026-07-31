@@ -10,6 +10,11 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+try:
+    import pandas as real_pandas
+except ImportError:
+    real_pandas = None
+
 
 class NullLogger:
     def __init__(self, *args, **kwargs):
@@ -27,7 +32,7 @@ class NullLogger:
 
 def scanning_import_stubs():
     """Return lightweight stubs for dependencies unused by these unit tests."""
-    pandas = types.ModuleType("pandas")
+    pandas = real_pandas or types.ModuleType("pandas")
     netifaces = types.ModuleType("netifaces")
     netifaces.AF_INET = 2
 
@@ -127,6 +132,26 @@ class ScanningWorkerTests(unittest.TestCase):
 
         self.assertFalse(runner.is_alive())
         self.assertEqual(sorted(completed), [20, 21, 22, 23, 80])
+
+    def test_port_scanner_propagates_worker_exceptions(self):
+        outer = SimpleNamespace(
+            lock=threading.Lock(),
+            logger=Mock(),
+            shutdown_requested=Mock(return_value=False),
+        )
+        scanner = self.network_scanner.PortScanner(
+            outer,
+            "192.0.2.10",
+            {"192.0.2.10": []},
+            22,
+            23,
+            [],
+        )
+
+        scanner.scan = Mock(side_effect=RuntimeError("port worker failed"))
+
+        with self.assertRaisesRegex(RuntimeError, "port worker failed"):
+            scanner.start()
 
     def test_worker_limits_fit_resource_constrained_devices(self):
         self.assertLessEqual(
@@ -362,6 +387,171 @@ class ScanningWorkerTests(unittest.TestCase):
                 scan_ports.network
             )
             outer.sort_and_write_csv.assert_called_once_with(csv_scan_file)
+
+    def test_host_processing_propagates_worker_exceptions(self):
+        hosts = ["192.0.2.10"]
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            csv_scan_file = os.path.join(temp_dir, "scan.csv")
+            outer = SimpleNamespace(
+                lock=threading.Lock(),
+                logger=Mock(),
+                nm=FakeNmapScanner(hosts),
+                run_host_discovery=Mock(),
+                shutdown_requested=Mock(return_value=False),
+                check_if_csv_scan_file_exists=Mock(),
+                sort_and_write_csv=Mock(),
+            )
+
+            scan_ports = object.__new__(self.network_scanner.ScanPorts)
+            scan_ports.outer_instance = outer
+            scan_ports.network = ipaddress.ip_network("192.0.2.0/24")
+            scan_ports.csv_scan_file = csv_scan_file
+            scan_ports.csv_result_file = os.path.join(
+                temp_dir,
+                "result.csv",
+            )
+            scan_ports.netkbfile = os.path.join(temp_dir, "netkb.csv")
+            scan_ports.scan_host = Mock(
+                side_effect=RuntimeError("host worker failed")
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "host worker failed"):
+                scan_ports.scan_network_and_write_to_csv()
+
+            outer.sort_and_write_csv.assert_not_called()
+
+    @unittest.skipIf(real_pandas is None, "pandas is not installed")
+    def test_livestatus_handles_numeric_ports_and_empty_values(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_path = os.path.join(temp_dir, "netkb.csv")
+            output_path = os.path.join(temp_dir, "livestatus.csv")
+            real_pandas.DataFrame(
+                [
+                    {
+                        "MAC Address": "00:11:22:33:44:55",
+                        "Alive": 1,
+                        "Ports": 22,
+                    },
+                    {
+                        "MAC Address": "00:11:22:33:44:66",
+                        "Alive": 1,
+                        "Ports": None,
+                    },
+                ]
+            ).to_csv(source_path, index=False)
+            real_pandas.DataFrame(
+                [
+                    {
+                        "Total Open Ports": 0,
+                        "Alive Hosts Count": 0,
+                        "All Known Hosts Count": 0,
+                        "Vulnerabilities Count": 7,
+                    }
+                ]
+            ).to_csv(output_path, index=False)
+
+            updater = self.network_scanner.LiveStatusUpdater(
+                source_path,
+                output_path,
+            )
+            updater.logger = Mock()
+
+            with patch.object(self.scanning_module, "pd", real_pandas):
+                result = updater.update_livestatus()
+
+            saved = real_pandas.read_csv(output_path)
+            self.assertTrue(result)
+            self.assertEqual(saved.loc[0, "Total Open Ports"], 1)
+            self.assertEqual(saved.loc[0, "Alive Hosts Count"], 2)
+            self.assertEqual(saved.loc[0, "All Known Hosts Count"], 2)
+            self.assertEqual(saved.loc[0, "Vulnerabilities Count"], 7)
+            updater.logger.error.assert_not_called()
+            updater.logger.info.assert_any_call("Livestatus updated")
+            updater.logger.info.assert_any_call(
+                f"Results saved to {output_path}"
+            )
+
+    @unittest.skipIf(real_pandas is None, "pandas is not installed")
+    def test_livestatus_ignores_empty_port_tokens(self):
+        updater = self.network_scanner.LiveStatusUpdater(
+            "unused-source.csv",
+            "unused-output.csv",
+        )
+        updater.df = real_pandas.DataFrame(
+            [
+                {
+                    "MAC Address": "00:11:22:33:44:55",
+                    "Alive": 1,
+                    "Ports": "22; 80;;443; ",
+                },
+                {
+                    "MAC Address": "00:11:22:33:44:66",
+                    "Alive": 1,
+                    "Ports": None,
+                },
+            ]
+        )
+
+        with patch.object(self.scanning_module, "pd", real_pandas):
+            updater.calculate_open_ports()
+
+        self.assertEqual(updater.total_open_ports, 3)
+
+    def test_livestatus_failure_stops_pipeline_without_false_success(self):
+        updater = self.network_scanner.LiveStatusUpdater(
+            "unused-source.csv",
+            "unused-output.csv",
+        )
+        updater.logger = Mock()
+        updater.read_csv = Mock()
+        updater.calculate_open_ports = Mock(
+            side_effect=RuntimeError("bad ports")
+        )
+        updater.calculate_hosts_counts = Mock()
+        updater.save_results = Mock()
+
+        result = updater.update_livestatus()
+
+        self.assertFalse(result)
+        updater.calculate_hosts_counts.assert_not_called()
+        updater.save_results.assert_not_called()
+        updater.logger.error.assert_called_once_with(
+            "Error updating livestatus during calculate_open_ports: "
+            "bad ports"
+        )
+        updater.logger.info.assert_not_called()
+
+    @unittest.skipIf(real_pandas is None, "pandas is not installed")
+    def test_livestatus_missing_output_does_not_report_success(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_path = os.path.join(temp_dir, "netkb.csv")
+            output_path = os.path.join(temp_dir, "missing.csv")
+            real_pandas.DataFrame(
+                [
+                    {
+                        "MAC Address": "00:11:22:33:44:55",
+                        "Alive": 1,
+                        "Ports": 22,
+                    }
+                ]
+            ).to_csv(source_path, index=False)
+            updater = self.network_scanner.LiveStatusUpdater(
+                source_path,
+                output_path,
+            )
+            updater.logger = Mock()
+
+            with patch.object(self.scanning_module, "pd", real_pandas):
+                result = updater.update_livestatus()
+
+            self.assertFalse(result)
+            updater.logger.error.assert_called_once()
+            self.assertIn(
+                "Error updating livestatus during save_results",
+                updater.logger.error.call_args.args[0],
+            )
+            updater.logger.info.assert_not_called()
 
 
 if __name__ == "__main__":

@@ -41,13 +41,18 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         self.auth_gate = auth_gate
         super().__init__(*args, **kwargs)
 
+    def log_request(self, code='-', size='-'):
+        """Suppress routine read-only access logs."""
+        if self.command in {'GET', 'HEAD'}:
+            return
+        super().log_request(code, size)
+
     def log_message(self, format, *args):
-        # Override to suppress logging of GET requests.
-        if 'GET' not in format % args:
-            logger.info("%s - - [%s] %s\n" %
-                        (self.client_address[0],
-                         self.log_date_time_string(),
-                         format % args))
+        message = format % args
+        logger.info("%s - - [%s] %s" %
+                    (self.client_address[0],
+                     self.log_date_time_string(),
+                     message))
 
     def gzip_encode(self, content):
         """Gzip compress the given content."""

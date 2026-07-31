@@ -441,7 +441,8 @@ class NetworkScanner:
 
             worker_count = min(MAX_PORT_SCAN_WORKERS, len(ports))
             with ThreadPoolExecutor(max_workers=worker_count) as executor:
-                list(executor.map(self.scan, ports))
+                for _ in executor.map(self.scan, ports):
+                    pass
 
     class ScanPorts:
         """
@@ -489,7 +490,8 @@ class NetworkScanner:
             if hosts:
                 worker_count = min(MAX_HOST_SCAN_WORKERS, len(hosts))
                 with ThreadPoolExecutor(max_workers=worker_count) as executor:
-                    list(executor.map(self.scan_host, hosts))
+                    for _ in executor.map(self.scan_host, hosts):
+                        pass
 
             self.outer_instance.sort_and_write_csv(self.csv_scan_file)
 
@@ -565,63 +567,77 @@ class NetworkScanner:
             """
             Reads the source CSV file into a DataFrame.
             """
-            try:
-                self.df = pd.read_csv(self.source_csv_path)
-            except Exception as e:
-                self.logger.error(f"Error in read_csv: {e}")
+            self.df = pd.read_csv(
+                self.source_csv_path,
+                dtype={'Ports': 'string'},
+            )
 
         def calculate_open_ports(self):
             """
             Calculates the total number of open ports for alive hosts.
             """
-            try:
-                alive_df = self.df[self.df['Alive'] == 1].copy()
-                alive_df.loc[:, 'Ports'] = alive_df['Ports'].fillna('')
-                alive_df.loc[:, 'Port Count'] = alive_df['Ports'].apply(lambda x: len(x.split(';')) if x else 0)
-                self.total_open_ports = alive_df['Port Count'].sum()
-            except Exception as e:
-                self.logger.error(f"Error in calculate_open_ports: {e}")
+            alive_df = self.df[self.df['Alive'] == 1].copy()
+            ports = alive_df['Ports'].astype('string').fillna('')
+            port_counts = ports.map(
+                lambda value: sum(
+                    1
+                    for port in value.split(';')
+                    if port.strip()
+                )
+            )
+            self.total_open_ports = int(port_counts.sum())
 
         def calculate_hosts_counts(self):
             """
             Calculates the total and alive host counts.
             """
-            try:
-                # self.all_known_hosts_count = self.df.shape[0] 
-                self.all_known_hosts_count = self.df[self.df['MAC Address'] != 'STANDALONE'].shape[0] 
-                self.alive_hosts_count = self.df[self.df['Alive'] == 1].shape[0]
-            except Exception as e:
-                self.logger.error(f"Error in calculate_hosts_counts: {e}")
+            # self.all_known_hosts_count = self.df.shape[0]
+            self.all_known_hosts_count = self.df[
+                self.df['MAC Address'] != 'STANDALONE'
+            ].shape[0]
+            self.alive_hosts_count = self.df[
+                self.df['Alive'] == 1
+            ].shape[0]
 
         def save_results(self):
             """
             Saves the calculated results to the output CSV file.
             """
-            try:
-                if os.path.exists(self.output_csv_path):
-                    results_df = pd.read_csv(self.output_csv_path)
-                    results_df.loc[0, 'Total Open Ports'] = self.total_open_ports
-                    results_df.loc[0, 'Alive Hosts Count'] = self.alive_hosts_count
-                    results_df.loc[0, 'All Known Hosts Count'] = self.all_known_hosts_count
-                    results_df.to_csv(self.output_csv_path, index=False)
-                else:
-                    self.logger.error(f"File {self.output_csv_path} does not exist.")
-            except Exception as e:
-                self.logger.error(f"Error in save_results: {e}")
+            if not os.path.exists(self.output_csv_path):
+                raise FileNotFoundError(
+                    f"File {self.output_csv_path} does not exist."
+                )
+
+            results_df = pd.read_csv(self.output_csv_path)
+            results_df.loc[0, 'Total Open Ports'] = self.total_open_ports
+            results_df.loc[0, 'Alive Hosts Count'] = self.alive_hosts_count
+            results_df.loc[0, 'All Known Hosts Count'] = (
+                self.all_known_hosts_count
+            )
+            results_df.to_csv(self.output_csv_path, index=False)
 
         def update_livestatus(self):
             """
             Updates the live status of hosts and saves the results.
             """
+            step_name = 'read_csv'
             try:
-                self.read_csv()
-                self.calculate_open_ports()
-                self.calculate_hosts_counts()
-                self.save_results()
-                self.logger.info("Livestatus updated")
-                self.logger.info(f"Results saved to {self.output_csv_path}")
+                for step_name, step in (
+                    ('read_csv', self.read_csv),
+                    ('calculate_open_ports', self.calculate_open_ports),
+                    ('calculate_hosts_counts', self.calculate_hosts_counts),
+                    ('save_results', self.save_results),
+                ):
+                    step()
             except Exception as e:
-                self.logger.error(f"Error in update_livestatus: {e}")
+                self.logger.error(
+                    f"Error updating livestatus during {step_name}: {e}"
+                )
+                return False
+
+            self.logger.info("Livestatus updated")
+            self.logger.info(f"Results saved to {self.output_csv_path}")
+            return True
         
         def clean_scan_results(self, scan_results_dir):
             """

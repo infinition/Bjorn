@@ -187,7 +187,7 @@ JOURNAL_FILE="$(mktemp)"
 trap 'rm -f -- "$JOURNAL_FILE"' EXIT
 journalctl "_PID=$SERVICE_PID" --no-pager >"$JOURNAL_FILE"
 
-ERROR_PATTERN='cannot schedule|can.t start new thread|pthread_create|Error in scan|Fatal Python error|Traceback|Exception in thread|status=[0-9]+/ABRT'
+ERROR_PATTERN='cannot schedule|can.t start new thread|pthread_create|Error in scan|Error updating livestatus|Error in (read_csv|calculate_open_ports|calculate_hosts_counts|save_results)|Fatal Python error|Traceback|Exception in thread|status=[0-9]+/ABRT'
 if grep -qiE "$ERROR_PATTERN" "$JOURNAL_FILE"; then
     echo "Relevant journal errors:" >&2
     grep -iE "$ERROR_PATTERN" "$JOURNAL_FILE" >&2 || true

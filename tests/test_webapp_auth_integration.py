@@ -15,14 +15,15 @@ from unittest.mock import patch
 
 
 class NullLogger:
+    info_messages = []
     warning_messages = []
     error_messages = []
 
     def __init__(self, *_args, **_kwargs):
         pass
 
-    def info(self, _message):
-        pass
+    def info(self, message):
+        type(self).info_messages.append(message)
 
     def warning(self, message):
         type(self).warning_messages.append(message)
@@ -154,6 +155,7 @@ class WebAppAuthIntegrationTests(unittest.TestCase):
         self.server_thread.start()
         self.port = self.server.server_address[1]
         DummyWebUtils.post_calls = 0
+        NullLogger.info_messages = []
         NullLogger.warning_messages = []
         NullLogger.error_messages = []
 
@@ -256,6 +258,37 @@ class WebAppAuthIntegrationTests(unittest.TestCase):
         )
         self.assertIn("from 127.0.0.1", warning)
         self.assertNotIn("private-value", warning)
+
+    def test_read_only_access_logs_are_suppressed_but_errors_remain(self):
+        status, _, _ = self.request("GET", "/")
+        self.assertEqual(status, 200)
+
+        status, _, body = self.request("HEAD", "/")
+        self.assertEqual(status, 200)
+        self.assertEqual(body, b"")
+        self.assertEqual(NullLogger.info_messages, [])
+
+        status, _, _ = self.request("GET", "/missing")
+        self.assertEqual(status, 404)
+        status, _, body = self.request("HEAD", "/missing")
+        self.assertEqual(status, 404)
+        self.assertEqual(body, b"")
+
+        self.assertEqual(len(NullLogger.info_messages), 2)
+        for message in NullLogger.info_messages:
+            self.assertIn("code 404, message File not found", message)
+            self.assertNotIn('"GET /missing', message)
+            self.assertNotIn('"HEAD /missing', message)
+
+    def test_post_path_containing_get_is_still_logged(self):
+        status, _, _ = self.request("POST", "/GET")
+
+        self.assertEqual(status, 404)
+        self.assertEqual(len(NullLogger.info_messages), 1)
+        self.assertIn(
+            '"POST /GET HTTP/1.1" 404',
+            NullLogger.info_messages[0],
+        )
 
     def test_post_challenge_does_not_wait_for_an_unsent_request_body(self):
         self.enable_authentication()

@@ -252,6 +252,8 @@ run_captured() {
 }
 
 run_static_checks() {
+    "$PYTHON_BIN" -c 'import pandas'
+
     bash -n "$PROJECT_DIR/install_bjorn.sh"
     bash -n "$PROJECT_DIR/install_stability_web_auth.sh"
     bash -n "$SCRIPT_DIR/run_fresh_installer_integration.sh"
