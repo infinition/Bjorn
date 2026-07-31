@@ -41,6 +41,7 @@ The e-Paper HAT display and web interface make it easy to monitor and interact w
 - **System Attacks**: Conducts brute-force attacks on various services (FTP, SSH, SMB, RDP, Telnet, SQL).
 - **File Stealing**: Extracts data from vulnerable services.
 - **User Interface**: Real-time display on the e-Paper HAT and web interface for monitoring and interaction.
+- **Optional Access Control**: Protects every web route with locally managed credentials when enabled.
 
 ![Bjorn Display](https://github.com/infinition/Bjorn/assets/37984399/bcad830d-77d6-4f3e-833d-473eadd33921)
 
@@ -90,6 +91,16 @@ sudo chmod +x install_bjorn.sh && sudo ./install_bjorn.sh
 ```
 
 For **detailed information** about **installation** process go to [Install Guide](INSTALL.md)
+
+The web interface remains open by default for backwards compatibility. After
+installation, enable password protection without placing the password in shell
+history:
+
+```bash
+sudo http_auth set <username>
+```
+
+Use Bjorn only on networks you own or are explicitly authorized to test.
 
 ## ⚡ Quick Start
 

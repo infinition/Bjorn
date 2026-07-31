@@ -139,6 +139,128 @@ Change the value according to your screen model:
 Press Esc to exit insert mode
 Type :wq and press Enter to save and quit
 
+##### 3.2: Stability Upgrade and Optional Web Authentication
+
+The current source includes bounded scan workers, deterministic process and
+hardware shutdown, and optional web authentication. Fresh installations receive
+these files through the normal installer. The full installation now adds an
+optional web-authentication step, bringing the sequence to nine steps. It first
+asks whether the `http_auth` management tool should be installed at all. Only
+after consent does it offer to configure a username and securely read the
+password without writing it to the installer log or shell history.
+If credential validation fails, the credential prompt is repeated locally;
+the installer never advances to file ownership or service setup without a
+credential file. Required installation failures stop the run instead of
+offering a generic retry that cannot replay the failed command. The final step
+starts `bjorn.service` and reports success only after the service is active and
+the web interface returns HTTP `200` or `401` on port 8000.
+
+The integrated full-install sequence can be reviewed without root privileges or
+system changes:
+
+```bash
+./install_bjorn.sh --show-plan
+```
+
+The actual optional-tool choices and credential lifecycle can be tested without
+touching a live installation:
+
+```bash
+./tests/run_fresh_installer_integration.sh
+```
+
+This creates and removes a temporary test root automatically.
+
+Use the transactional installer to upgrade an existing Bjorn installation. It
+deploys the complete stability and authentication feature set as one unit,
+creates one rollback snapshot, stops and starts the service once, and verifies
+the service and web interface before reporting success:
+
+```bash
+cd /path/to/the/updated/Bjorn-checkout
+sudo ./install_stability_web_auth.sh \
+  --target /home/bjorn/Bjorn \
+  --username bjornadmin
+```
+
+The password prompt does not place the password in shell history. Omitting both
+`--username` and `--credentials` installs the stability changes while leaving
+the web interface open for backwards compatibility:
+
+```bash
+sudo ./install_stability_web_auth.sh --target /home/bjorn/Bjorn
+```
+
+An existing valid credential file can be reused instead:
+
+```bash
+sudo ./install_stability_web_auth.sh \
+  --target /home/bjorn/Bjorn \
+  --credentials /path/to/web_auth.json
+```
+
+If validation, deployment, or startup fails, the installer restores the entire
+previous file set and starts the previous version again. Every successful
+installation prints its rollback snapshot. Restore one later with:
+
+```bash
+sudo ./install_stability_web_auth.sh \
+  --target /home/bjorn/Bjorn \
+  --restore \
+  /home/bjorn/stability-web-auth-rollback-YYYYMMDD-HHMMSS-XXXXXX
+```
+
+The restore operation creates a recovery snapshot before changing files and
+then verifies the restored service and port 8000.
+
+When the updated files are already installed, set a username and password
+without placing the password in shell history by running:
+
+```bash
+sudo http_auth set bjornadmin
+```
+
+The password must contain at least 12 characters. Bjorn stores a salted scrypt
+verifier in `config/web_auth.json`; the plaintext password is never written to
+disk. To inspect or change the state:
+
+```bash
+sudo http_auth status
+sudo http_auth disable
+sudo http_auth enable
+```
+
+For non-interactive automation, pass the password through standard input rather
+than a command argument:
+
+```bash
+printf '%s\n' "$WEB_AUTH_PASSWORD" |
+  sudo http_auth set bjornadmin --password-stdin
+```
+
+Run the complete isolated and live validation suite in release order with:
+
+```bash
+sudo ./tests/run_stability_web_auth_validation.sh --all \
+  --target /home/bjorn/Bjorn
+```
+
+The suite first runs all unit and integration tests, then validates scanner
+completion, bounded thread use, service shutdown and restart, authentication
+commands, every web route, malformed requests, and credential restoration. The
+live test restores the original credential verifier automatically.
+
+Browsers may first request a protected resource without an Authorization
+header and then repeat it with the stored credentials. The initial request
+still receives `401` as required by HTTP Basic authentication, but only
+malformed or incorrect credentials are written as authentication warnings.
+Rejected POST requests are answered without waiting for an unsent request body,
+so an incomplete browser request cannot block the web interface.
+
+HTTP Basic authentication provides access control but does not encrypt network
+traffic. Use Bjorn only on a trusted local network or place an HTTPS reverse
+proxy in front of it when traffic crosses an untrusted network.
+
 #### Step 4: Configure File Descriptor Limits
 
 To prevent `OSError: [Errno 24] Too many open files`, it's essential to increase the file descriptor limits.
