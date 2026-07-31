@@ -86,6 +86,7 @@ class SharedData:
         # Files directly under configdir
         self.shared_config_json = os.path.join(self.configdir, 'shared_config.json')
         self.actions_file = os.path.join(self.configdir, 'actions.json')
+        self.web_auth_file = os.path.join(self.configdir, 'web_auth.json')
         # Files directly under resourcesdir
         self.commentsfile = os.path.join(self.commentsdir, 'comments.json')
         # Files directly under datadir

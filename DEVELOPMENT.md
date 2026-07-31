@@ -303,6 +303,76 @@ Defines various settings for Bjorn, including:
 - Port lists and blacklists.
 These settings are accessible on the webpage.
 
+### Optional Web Authentication
+
+`web_auth.py` implements opt-in HTTP Basic authentication using a salted scrypt
+password verifier. Credentials are managed by `configure_web_auth.py` and kept
+out of `shared_config.json`, the web configuration endpoint, and Git.
+
+When no credential file exists, current unauthenticated behavior is preserved.
+When credentials exist and are enabled, every GET, HEAD, POST, static asset,
+and API route requires authentication. An existing but unreadable credential
+file fails closed.
+
+An HTTP Basic challenge without an Authorization header is an expected part of
+browser authentication and still receives `401`, but it is not recorded as an
+invalid-credential warning. Requests that supply a malformed or incorrect
+Authorization header are logged with the method, normalized path, and source
+address. Query parameters are omitted from that audit message.
+
+Rejected entity-bearing requests never wait for a declared request body before
+returning the authentication challenge. Bytes that are already available are
+drained non-blockingly, then the server returns `401` with `Connection: close`.
+This prevents an incomplete unauthenticated POST from monopolizing Bjorn's
+single-request web server.
+
+`install_stability_web_auth.sh` provides one transactional deployment path for
+the complete scanner, lifecycle, hardware-shutdown, web-server, and optional
+authentication change set. These areas share the web-server lifecycle and are
+therefore installed and rolled back atomically instead of being stacked as
+independent patches. The installer validates the source and credential files,
+snapshots every managed target file, stops and restarts the systemd service
+once, verifies that the new service remains active and serves HTTP on port
+8000, and restores the complete snapshot automatically on failure. The web
+server enables address reuse so a quick service restart does not make it drift
+to port 8001. Successful deployment snapshots can also be selected explicitly
+with `install_stability_web_auth.sh --restore`. A restore creates its own
+recovery snapshot before changing files, so it can be reversed as well.
+It also installs `/usr/local/sbin/http_auth` as the short management command;
+the main installer offers that command and credential configuration as two
+separate opt-in choices during a dedicated full-install step.
+`install_bjorn.sh --show-plan` renders that integrated nine-step sequence
+without creating logs, requiring root, or changing the system.
+Credential validation failures remain inside the credential prompt so a retry
+actually reruns the failed operation. Other required-step failures abort the
+installer immediately. The installer starts `bjorn.service` itself and its
+final verification requires both an active unit and HTTP `200` or `401` on port
+8000, preventing warning-only or false-success fresh installations.
+For automation, `http_auth set USER --password-stdin` reads one password line
+from standard input so the plaintext is not placed in a command argument or
+shell history.
+
+Targeted web-authentication checks remain available for development:
+
+```bash
+# Syntax, compile, and isolated HTTP/unit tests
+./tests/run_web_auth_validation.sh --unit
+
+# Live command and HTTP checks with automatic credential restoration
+sudo ./tests/run_web_auth_validation.sh --runtime \
+  --target /home/bjorn/Bjorn
+
+# Both levels
+sudo ./tests/run_web_auth_validation.sh --all \
+  --target /home/bjorn/Bjorn
+```
+
+The runtime test temporarily installs a generated verifier, exercises `set`,
+`status`, `disable`, and `enable`, validates correct, incorrect, missing, and
+private-file requests, checks the incomplete-POST regression and challenge
+stress behavior, then restores the original credential file even on failure or
+interruption. Release validation uses the combined runner documented below.
+
 ### 🛠️ Actions Configuration (`actions.json`)
 
 Lists the actions to be performed by Bjorn, including (dynamically generated with the content of the folder):
@@ -340,6 +410,115 @@ In my journey to make Bjorn work with the different screen versions, I struggled
 2. Use an isolated network.
 3. Follow ethical guidelines.
 4. Document test cases.
+
+### Stability and web-authentication validation
+
+The combined contribution has two validation levels:
+
+```bash
+# Fast, non-invasive syntax, compile, unit, and integration checks
+./tests/run_stability_web_auth_validation.sh --unit
+
+# Live Raspberry Pi checks, including scanner completion, authentication,
+# credential restoration, and a real service stop/start
+sudo ./tests/run_stability_web_auth_validation.sh --runtime \
+  --target /home/bjorn/Bjorn
+
+# Both levels in the required order
+sudo ./tests/run_stability_web_auth_validation.sh --all \
+  --target /home/bjorn/Bjorn
+
+# Optional longer observation before a release or pull request
+sudo ./tests/run_stability_web_auth_validation.sh --all \
+  --target /home/bjorn/Bjorn \
+  --duration 90
+```
+
+The combined runner prints a compact, color-coded release summary by default
+and shows complete underlying diagnostics automatically when a check fails.
+Use `--verbose` to show every test name and internal validation marker, or set
+`NO_COLOR=1` when plain output is required for a log collector.
+
+The unit level also runs `tests/run_fresh_installer_integration.sh`. It sources
+the real fresh installer with all destination paths redirected into a temporary
+root, then exercises declining the optional tool, installing it without
+credentials, configuring a real salted test verifier through the installed
+command, checking mode `0600`, and using status/disable/enable. Linux requires
+the management command to be a real symbolic link. The temporary root is
+removed automatically and no live Bjorn file or system command path changes.
+The canonical runner requires pandas so the real CSV type-inference regression
+tests cannot be silently skipped.
+
+The runtime level verifies that every installed runtime file matches the tested
+checkout. The service PID and authenticated web response must remain stable,
+thread use must stay below a configurable limit, a scan must complete without
+executor errors, shutdown must be clean and bounded, and the service must
+return on port 8000. It then exercises the web-authentication command and HTTP
+contract and restores the original credential state. The default runtime
+observation is 30 seconds; use `--duration 90` for the longer
+release-validation profile.
+When a freshly started scan needs longer than the observation window, the
+runner continues monitoring only until that scan completes, bounded by
+`--scan-timeout` (90 seconds by default).
+
+If systemd stops Bjorn while Nmap is producing its XML result, the resulting
+interruption is logged as an expected shutdown event. The same exception
+outside an active shutdown remains a scanner error.
+
+The scanner also disables Rich's automatic progress refresh thread. Progress
+updates remain visible, but run synchronously in the orchestrator-owned scan
+thread so a daemon refresh cannot write to the terminal during interpreter
+shutdown.
+
+Live-status aggregation treats the semicolon-separated `Ports` column as text
+at the CSV boundary. This prevents a single numeric port plus empty cells from
+being inferred as floats by pandas. Empty port tokens are ignored, and a
+failed aggregation stops without writing partial counters or logging a false
+success. The live runtime validation rejects both aggregation and result-write
+errors.
+
+After all Bjorn-owned workers have stopped, the lifecycle handler gives any
+remaining Python library thread a bounded grace period. Residual threads are
+reported with their name, class, target, and daemon state. A thread that misses
+the grace deadline makes shutdown fail explicitly instead of allowing a false
+`Clean exit` followed by an interpreter-shutdown traceback.
+
+Display shutdown also puts the e-paper panel to sleep, closes every gpiozero
+device created by the Waveshare backend, and closes the shared pin factory.
+This stops gpiozero's hold worker and lgpio's callback thread before Python
+finalization.
+
+The Python lgpio binding starts one module-global notification daemon. Closing
+the gpiochip alone does not stop its blocking pipe read, so final hardware
+shutdown explicitly stops that worker, closes its notification handle to wake
+the read, and joins it with a bounded timeout.
+
+Host discovery is also shutdown-aware. `python-nmap` normally waits
+indefinitely in `Popen.communicate()`, which can make `systemctl stop` wait for
+an entire `/24` discovery pass. Bjorn now launches the equivalent Nmap XML
+command with short polling intervals. A normal scan is never shortened; only
+an active application shutdown terminates the child process. Completed output
+continues through python-nmap's existing XML parser.
+
+The scanner/lifecycle and authentication changes intentionally share one
+`webapp.py`. A single installer and rollback snapshot prevent order-dependent
+layering and ensure that the exact code covered by the combined validation
+suite is the code running on the device.
+
+For release validation on a freshly installed card, capture the pre-reboot
+state and verify it after a real reboot with:
+
+```bash
+sudo ./tests/run_reboot_persistence_validation.sh --prepare
+sudo reboot
+# Reconnect after boot, then:
+sudo ./tests/run_reboot_persistence_validation.sh --verify
+```
+
+The hand-off file contains only the old boot ID, expected HTTP result, a hash of
+the credential file, and the management-command target. Verification requires a
+new boot ID, the same access-control state, a completed scan, bounded thread
+use, and a clean current-boot journal.
 
 ## 💻 Web Interface
 
