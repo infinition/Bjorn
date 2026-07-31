@@ -1,5 +1,6 @@
 import base64
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -96,6 +97,40 @@ class WebAuthTests(unittest.TestCase):
         counting_store.save("bjornadmin", "new correct horse password")
         self.assertFalse(gate.is_authorized(header))
         self.assertEqual(counting_store.verify_calls, 2)
+
+    def test_access_metadata_change_invalidates_cached_authorization(self):
+        self.store.save("bjornadmin", "correct horse battery staple")
+
+        class CountingStore(CredentialStore):
+            def __init__(self, path):
+                super().__init__(path)
+                self.verify_calls = 0
+
+            def verify(self, username, password):
+                self.verify_calls += 1
+                return super().verify(username, password)
+
+        counting_store = CountingStore(self.credential_file)
+        gate = BasicAuthGate(counting_store)
+        header = self.authorization_header(
+            "bjornadmin",
+            "correct horse battery staple",
+        )
+
+        self.assertTrue(gate.is_authorized(header))
+        self.assertTrue(gate.is_authorized(header))
+        self.assertEqual(counting_store.verify_calls, 1)
+
+        original_signature = counting_store.file_signature()
+        try:
+            os.chmod(self.credential_file, 0o400)
+            changed_signature = counting_store.file_signature()
+
+            self.assertNotEqual(original_signature, changed_signature)
+            self.assertTrue(gate.is_authorized(header))
+            self.assertEqual(counting_store.verify_calls, 2)
+        finally:
+            os.chmod(self.credential_file, 0o600)
 
     def test_authentication_can_be_disabled_without_deleting_credentials(self):
         self.store.save("bjornadmin", "correct horse battery staple")

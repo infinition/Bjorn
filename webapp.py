@@ -292,12 +292,21 @@ class WebThread(threading.Thread):
 
     def shutdown(self):
         """
-        Shutdown the web server gracefully.
+        Request the manual server loop to exit and close its listening socket.
+
+        ``BaseServer.shutdown()`` may only be used with ``serve_forever()``.
+        This thread deliberately uses ``handle_request()`` so it can observe
+        Bjorn's shared shutdown flag; calling ``shutdown()`` here would wait
+        forever for a ``serve_forever()`` completion event that cannot occur.
         """
-        if self.httpd:
-            self.httpd.shutdown()
-            self.httpd.server_close()
-            logger.info("Web server shutdown initiated.")
+        self.shared_data.webapp_should_exit = True
+        httpd = self.httpd
+        if httpd:
+            try:
+                httpd.server_close()
+            except OSError:
+                pass
+        logger.info("Web server shutdown requested.")
 
 def handle_exit_web(signum, frame):
     """

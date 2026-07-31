@@ -210,10 +210,16 @@ class CredentialStore:
         return username_matches and password_matches
 
     def file_signature(self):
-        """Return a signature that changes when credentials are replaced."""
+        """Return a signature that changes with content or access metadata."""
         try:
             stat_result = self.path.stat()
-            return stat_result.st_mtime_ns, stat_result.st_size
+            return (
+                stat_result.st_mtime_ns,
+                stat_result.st_size,
+                stat_result.st_mode,
+                stat_result.st_uid,
+                stat_result.st_gid,
+            )
         except OSError:
             return None
 

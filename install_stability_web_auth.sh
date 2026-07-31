@@ -111,7 +111,7 @@ EOF
 
 fail() {
     error "$*"
-    return 1
+    exit 1
 }
 
 require_value() {

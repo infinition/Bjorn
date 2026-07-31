@@ -341,6 +341,31 @@ class WebAppAuthIntegrationTests(unittest.TestCase):
 
         self.assertEqual(web_thread.name, "BjornWeb")
 
+    def test_web_thread_shutdown_matches_manual_request_loop(self):
+        class FakeServer:
+            def __init__(self):
+                self.close_calls = 0
+                self.shutdown_calls = 0
+
+            def server_close(self):
+                self.close_calls += 1
+
+            def shutdown(self):
+                self.shutdown_calls += 1
+
+        web_thread = self.webapp.WebThread(
+            handler_class=self.webapp.CustomHandler,
+            port=0,
+        )
+        fake_server = FakeServer()
+        web_thread.httpd = fake_server
+
+        web_thread.shutdown()
+
+        self.assertTrue(self.shared_data.webapp_should_exit)
+        self.assertEqual(fake_server.close_calls, 1)
+        self.assertEqual(fake_server.shutdown_calls, 0)
+
     def test_web_thread_exits_promptly_after_shutdown_flag(self):
         web_thread = self.webapp.WebThread(
             handler_class=self.webapp.CustomHandler,

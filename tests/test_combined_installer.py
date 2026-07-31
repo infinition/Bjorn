@@ -1,6 +1,10 @@
 """Regression tests for the combined transactional installer."""
 
+import os
 import re
+import shutil
+import subprocess
+import textwrap
 import unittest
 from pathlib import Path
 
@@ -38,6 +42,47 @@ class CombinedInstallerTests(unittest.TestCase):
         start_position = body.index("start_and_verify")
         self.assertLess(stop_position, restore_position)
         self.assertLess(restore_position, start_position)
+
+    def test_fatal_validation_helper_exits_instead_of_returning(self):
+        body = self.function_body("fail")
+        self.assertIn("exit 1", body)
+        self.assertNotIn("return 1", body)
+
+    def test_fatal_validation_cannot_be_swallowed_by_conditional_function(self):
+        if os.name == "nt":
+            self.skipTest("native bash behavior test runs on Linux")
+        bash = shutil.which("bash")
+        if bash is None:
+            self.skipTest("bash is required for installer behavior testing")
+
+        script = textwrap.dedent(
+            f"""
+            set -e
+            error() {{ printf 'ERROR: %s\\n' "$*" >&2; }}
+            fail() {{
+            {self.function_body("fail")}
+            }}
+            nested_validation() {{
+                [[ -d /definitely/not/a/real/bjorn/target ]] || \
+                    fail "missing target"
+                printf 'VALIDATION_CONTINUED\\n'
+            }}
+            if nested_validation; then
+                printf 'CONDITIONAL_SUCCEEDED\\n'
+            fi
+            printf 'SCRIPT_CONTINUED\\n'
+            """
+        )
+        completed = subprocess.run(
+            [bash, "-c", script],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(completed.returncode, 1)
+        self.assertIn("missing target", completed.stderr)
+        self.assertNotIn("CONTINUED", completed.stdout)
 
     def test_recovery_requires_process_exit_before_file_restore(self):
         body = self.function_body("stop_before_restore")
