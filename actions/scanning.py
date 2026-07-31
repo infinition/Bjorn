@@ -11,6 +11,8 @@ import netifaces
 import time
 import glob
 import logging
+import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from rich.console import Console
 from rich.table import Table
@@ -31,6 +33,16 @@ b_port = None
 b_parent = None
 b_priority = 1
 
+MAX_PORT_SCAN_WORKERS = 32
+MAX_HOST_SCAN_WORKERS = 16
+NMAP_SHUTDOWN_POLL_SECONDS = 0.25
+NMAP_TERMINATE_TIMEOUT_SECONDS = 2
+
+
+class NetworkScanCancelled(RuntimeError):
+    """Raised when an active network scan is cancelled during shutdown."""
+
+
 class NetworkScanner:
     """
     This class handles the entire network scanning process.
@@ -45,9 +57,110 @@ class NetworkScanner:
         self.console = Console()
         self.lock = threading.Lock()
         self.currentdir = shared_data.currentdir
-        self.semaphore = threading.Semaphore(200)  # Limit the number of active threads to 20
         self.nm = nmap.PortScanner()  # Initialize nmap.PortScanner()
         self.running = False
+        self.stop_event = threading.Event()
+        self.discovery_process = None
+
+    def shutdown_requested(self):
+        """Return whether Bjorn has requested application shutdown."""
+        return (
+            (
+                getattr(self, "stop_event", None) is not None
+                and self.stop_event.is_set()
+            )
+            or getattr(self.shared_data, "should_exit", False)
+            or getattr(
+                self.shared_data,
+                "orchestrator_should_exit",
+                False,
+            )
+        )
+
+    def wait_or_cancel(self, timeout):
+        """Wait for a bounded interval while remaining responsive to shutdown."""
+        deadline = time.monotonic() + timeout
+        while True:
+            if self.shutdown_requested():
+                raise NetworkScanCancelled(
+                    "Network scan wait interrupted during shutdown."
+                )
+
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return
+            time.sleep(min(0.1, remaining))
+
+    def terminate_discovery_process(self, process):
+        """Terminate a running Nmap process, escalating if it does not exit."""
+        if process.poll() is not None:
+            return
+
+        process.terminate()
+        try:
+            process.communicate(timeout=NMAP_TERMINATE_TIMEOUT_SECONDS)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.communicate()
+
+    def run_host_discovery(self, network):
+        """
+        Run Nmap host discovery while remaining responsive to shutdown.
+
+        python-nmap waits indefinitely in ``Popen.communicate()``. Running the
+        same Nmap command here in short polling intervals lets Bjorn terminate
+        only an in-flight discovery process when systemd requests a stop. The
+        completed XML is still parsed by python-nmap so downstream behavior
+        remains unchanged.
+        """
+        if self.shutdown_requested():
+            raise NetworkScanCancelled(
+                "Network discovery cancelled before Nmap was started."
+            )
+
+        nmap_path = getattr(self.nm, "_nmap_path", "nmap")
+        command = [
+            nmap_path,
+            "-oX",
+            "-",
+            str(network),
+            "-sn",
+        ]
+        process = subprocess.Popen(
+            command,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        self.discovery_process = process
+
+        try:
+            while True:
+                try:
+                    nmap_output, nmap_error = process.communicate(
+                        timeout=NMAP_SHUTDOWN_POLL_SECONDS,
+                    )
+                    break
+                except subprocess.TimeoutExpired:
+                    if self.shutdown_requested():
+                        self.terminate_discovery_process(process)
+                        raise NetworkScanCancelled(
+                            "Active Nmap discovery terminated during shutdown."
+                        )
+
+            if self.shutdown_requested():
+                raise NetworkScanCancelled(
+                    "Network discovery completed during shutdown."
+                )
+
+            self.nm.analyse_nmap_xml_scan(
+                nmap_xml_output=nmap_output,
+                nmap_err=nmap_error.decode(errors="replace"),
+            )
+        finally:
+            if process.poll() is None:
+                self.terminate_discovery_process(process)
+            self.discovery_process = None
 
     def check_if_csv_scan_file_exists(self, csv_scan_file, csv_result_file, netkbfile):
         """
@@ -299,37 +412,36 @@ class NetworkScanner:
             """
             Scans a specific port on the target IP.
             """
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(2)
+            if self.outer_instance.shutdown_requested():
+                return
             try:
-                con = s.connect((self.target, port))
-                self.open_ports[self.target].append(port)
-                con.close()
-            except:
-                pass
-            finally:
-                s.close()  # Ensure the socket is closed
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                    sock.settimeout(2)
+                    if sock.connect_ex((self.target, port)) == 0:
+                        with self.outer_instance.lock:
+                            self.open_ports[self.target].append(port)
+            except OSError:
+                # Closed or unreachable ports are expected during a scan.
+                return
 
         def start(self):
             """
             Starts the port scanning process for the specified range and extra ports.
             """
-            try:
-                for port in range(self.portstart, self.portend):
-                    t = threading.Thread(target=self.scan_with_semaphore, args=(port,))
-                    t.start()
-                for port in self.extra_ports:
-                    t = threading.Thread(target=self.scan_with_semaphore, args=(port,))
-                    t.start()
-            except Exception as e:
-                self.logger.info(f"Maximum threads defined in the semaphore reached: {e}")
+            ports = list(dict.fromkeys([
+                *range(self.portstart, self.portend),
+                *self.extra_ports,
+            ]))
+            if not ports:
+                return
+            if self.outer_instance.shutdown_requested():
+                raise NetworkScanCancelled(
+                    "Port scan cancelled during shutdown."
+                )
 
-        def scan_with_semaphore(self, port):
-            """
-            Scans a port using a semaphore to limit concurrent threads.
-            """
-            with self.outer_instance.semaphore:
-                self.scan(port)
+            worker_count = min(MAX_PORT_SCAN_WORKERS, len(ports))
+            with ThreadPoolExecutor(max_workers=worker_count) as executor:
+                list(executor.map(self.scan, ports))
 
     class ScanPorts:
         """
@@ -368,18 +480,27 @@ class NetworkScanner:
                     self.outer_instance.logger.error(f"Error in scan_network_and_write_to_csv (initial write): {e}")
 
             # Use nmap to scan for live hosts
-            self.outer_instance.nm.scan(hosts=str(self.network), arguments='-sn')
-            for host in self.outer_instance.nm.all_hosts():
-                t = threading.Thread(target=self.scan_host, args=(host,))
-                t.start()
+            self.outer_instance.run_host_discovery(self.network)
+            if self.outer_instance.shutdown_requested():
+                raise NetworkScanCancelled(
+                    "Host processing cancelled during shutdown."
+                )
+            hosts = list(self.outer_instance.nm.all_hosts())
+            if hosts:
+                worker_count = min(MAX_HOST_SCAN_WORKERS, len(hosts))
+                with ThreadPoolExecutor(max_workers=worker_count) as executor:
+                    list(executor.map(self.scan_host, hosts))
 
-            time.sleep(5)
             self.outer_instance.sort_and_write_csv(self.csv_scan_file)
 
         def scan_host(self, ip):
             """
             Scans a specific host to check if it is alive and retrieves its hostname and MAC address.
             """
+            if self.outer_instance.shutdown_requested():
+                raise NetworkScanCancelled(
+                    "Host scan cancelled during shutdown."
+                )
             if self.outer_instance.blacklistcheck and ip in self.outer_instance.ip_scan_blacklist:
                 return
             try:
@@ -391,9 +512,12 @@ class NetworkScanner:
                             writer = csv.writer(file)
                             writer.writerow([ip, hostname, mac])
                             self.ip_hostname_list.append((ip, hostname, mac))
+            except NetworkScanCancelled:
+                raise
             except Exception as e:
                 self.outer_instance.logger.error(f"Error getting MAC address or writing to file for IP {ip}: {e}")
-            self.progress += 1
+            with self.outer_instance.lock:
+                self.progress += 1
             time.sleep(0.1)  # Adding a small delay to avoid overwhelming the network
 
         def get_progress(self):
@@ -407,13 +531,20 @@ class NetworkScanner:
             Starts the network and port scanning process.
             """
             self.scan_network_and_write_to_csv()
-            time.sleep(7)
+            self.outer_instance.wait_or_cancel(7)
             self.ip_data = self.outer_instance.GetIpFromCsv(self.outer_instance, self.csv_scan_file)
             self.open_ports = {ip: [] for ip in self.ip_data.ip_list}
-            with Progress() as progress:
+            # Bjorn already runs the scan in its orchestrator thread. Disable
+            # Rich's daemon refresh thread so it cannot outlive a completed
+            # scan and write to stderr while Python is shutting down.
+            with Progress(auto_refresh=False) as progress:
                 task = progress.add_task("[cyan]Scanning IPs...", total=len(self.ip_data.ip_list))
                 for ip in self.ip_data.ip_list:
-                    progress.update(task, advance=1)
+                    if self.outer_instance.shutdown_requested():
+                        raise NetworkScanCancelled(
+                            "Port scan cancelled during shutdown."
+                        )
+                    progress.update(task, advance=1, refresh=True)
                     port_scanner = self.outer_instance.PortScanner(self.outer_instance, ip, self.open_ports, self.portstart, self.portend, self.extra_ports)
                     port_scanner.start()
 
@@ -561,7 +692,12 @@ class NetworkScanner:
             updater.update_livestatus()
             updater.clean_scan_results(self.shared_data.scan_results_dir)
         except Exception as e:
-            self.logger.error(f"Error in scan: {e}")
+            if self.shutdown_requested():
+                self.logger.info(
+                    "Network scan stopped during application shutdown."
+                )
+            else:
+                self.logger.error(f"Error in scan: {e}")
 
     def start(self):
         """
@@ -569,7 +705,11 @@ class NetworkScanner:
         """
         if not self.running:
             self.running = True
-            self.thread = threading.Thread(target=self.scan)
+            self.stop_event.clear()
+            self.thread = threading.Thread(
+                target=self.scan,
+                name="BjornNetworkScanner",
+            )
             self.thread.start()
             logger.info("NetworkScanner started.")
 
@@ -579,6 +719,7 @@ class NetworkScanner:
         """
         if self.running:
             self.running = False
+            self.stop_event.set()
             if self.thread.is_alive():
                 self.thread.join()
             logger.info("NetworkScanner stopped.")

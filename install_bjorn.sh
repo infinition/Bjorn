@@ -12,27 +12,65 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# Logging configuration
-LOG_DIR="/var/log/bjorn_install"
-mkdir -p "$LOG_DIR"
-LOG_FILE="$LOG_DIR/bjorn_install_$(date +%Y%m%d_%H%M%S).log"
-VERBOSE=false
-
 # Global variables
-BJORN_USER="bjorn"
-BJORN_PATH="/home/${BJORN_USER}/Bjorn"
+BJORN_USER="${BJORN_USER:-bjorn}"
+BJORN_PATH="${BJORN_PATH:-/home/${BJORN_USER}/Bjorn}"
+HTTP_AUTH_COMMAND_PATH="${HTTP_AUTH_COMMAND_PATH:-/usr/local/sbin/http_auth}"
 CURRENT_STEP=0
-TOTAL_STEPS=8
-
-if [[ "$1" == "--help" ]]; then
-    echo "Usage: sudo ./install_bjorn.sh"
-    echo "Make sure you have the necessary permissions and that all dependencies are met."
-    exit 0
-fi
+FULL_INSTALL_STEPS=(
+    "Checking system compatibility"
+    "Installing system dependencies"
+    "Configuring system limits"
+    "Configuring interfaces"
+    "Setting up BJORN"
+    "Installing optional web-authentication tools"
+    "Configuring USB Gadget"
+    "Setting up services"
+    "Verifying installation"
+)
+TOTAL_STEPS="${#FULL_INSTALL_STEPS[@]}"
 
 # Function to display progress
 show_progress() {
     echo -e "${BLUE}Step $CURRENT_STEP of $TOTAL_STEPS: $1${NC}"
+}
+
+show_install_plan() {
+    local step_name
+
+    echo -e "${BLUE}BJORN full installation plan:${NC}"
+    for step_name in "${FULL_INSTALL_STEPS[@]}"; do
+        CURRENT_STEP=$((CURRENT_STEP + 1))
+        show_progress "$step_name"
+    done
+    echo
+    echo -e "${YELLOW}Web authentication is optional.${NC}"
+    echo "If enabled, the password is entered securely and stored only as a"
+    echo "salted verifier. No installation changes are performed by this view."
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    case "${1:-}" in
+        --help)
+            echo "Usage: sudo ./install_bjorn.sh"
+            echo "       ./install_bjorn.sh --show-plan"
+            echo "Make sure you have the necessary permissions and that all dependencies are met."
+            exit 0
+            ;;
+        --show-plan)
+            show_install_plan
+            exit 0
+            ;;
+    esac
+fi
+
+# Logging configuration
+LOG_DIR="${LOG_DIR:-/var/log/bjorn_install}"
+LOG_FILE="${LOG_FILE:-$LOG_DIR/bjorn_install_$(date +%Y%m%d_%H%M%S).log}"
+VERBOSE=false
+
+initialize_logging() {
+    mkdir -p "$LOG_DIR"
 }
 
 # Logging function
@@ -54,33 +92,22 @@ log() {
 
 # Error handling function
 handle_error() {
-    local error_code=$?
-    local error_message=$1
+    local error_message="$1"
+    local error_code="${2:-1}"
     log "ERROR" "An error occurred during: $error_message (Error code: $error_code)"
     log "ERROR" "Check the log file for details: $LOG_FILE"
-
-    echo -e "\n${RED}Would you like to:"
-    echo "1. Retry this step"
-    echo "2. Skip this step (not recommended)"
-    echo "3. Exit installation${NC}"
-    read -r choice
-
-    case $choice in
-        1) return 1 ;; # Retry
-        2) return 0 ;; # Skip
-        3) clean_exit 1 ;; # Exit
-        *) handle_error "$error_message" ;; # Invalid choice
-    esac
+    echo -e "${RED}The installation cannot safely continue.${NC}"
+    clean_exit "$error_code"
 }
 
 # Function to check command success
 check_success() {
-    if [ $? -eq 0 ]; then
+    local command_status=$?
+    if [ "$command_status" -eq 0 ]; then
         log "SUCCESS" "$1"
         return 0
     else
-        handle_error "$1"
-        return $?
+        handle_error "$1" "$command_status"
     fi
 }
 
@@ -327,10 +354,77 @@ setup_bjorn() {
     # Set correct permissions
     chown -R $BJORN_USER:$BJORN_USER /home/$BJORN_USER/Bjorn
     chmod -R 755 /home/$BJORN_USER/Bjorn
-    
+
     # Add bjorn user to necessary groups
     usermod -a -G spi,gpio,i2c $BJORN_USER
     check_success "Added bjorn user to required groups"
+}
+
+# Configure optional web authentication without exposing a password in
+# arguments, command history, or the installer log.
+configure_web_auth() {
+    local install_auth_tools
+    local enable_auth
+    local web_username
+
+    if [ ! -f "$BJORN_PATH/configure_web_auth.py" ]; then
+        log "ERROR" "Web-authentication helper not found: $BJORN_PATH/configure_web_auth.py"
+        handle_error "Web authentication configuration"
+        return
+    fi
+
+    echo -e "${BLUE}Optional web-authentication tools:${NC}"
+    read -r -p "Install the http_auth management command? (Y/n): " install_auth_tools
+    case "$install_auth_tools" in
+        n|N)
+            log "INFO" "Optional web-authentication tools were not installed"
+            log "INFO" "Authentication remains unconfigured"
+            return
+            ;;
+        *)
+            chmod 755 "$BJORN_PATH/configure_web_auth.py"
+            check_success "Prepared web-authentication management helper"
+            install -d -m 755 "$(dirname -- "$HTTP_AUTH_COMMAND_PATH")"
+            ln -sfn "$BJORN_PATH/configure_web_auth.py" \
+                "$HTTP_AUTH_COMMAND_PATH"
+            check_success "Installed http_auth management command"
+            ;;
+    esac
+
+    read -r -p "Protect the web interface with a password now? (y/N): " enable_auth
+    case "$enable_auth" in
+        y|Y)
+            read -r -p "Web username [bjorn]: " web_username
+            web_username="${web_username:-bjorn}"
+            while true; do
+                if python3 "$BJORN_PATH/configure_web_auth.py" \
+                    set "$web_username"; then
+                    log "SUCCESS" "Configured web authentication"
+                    chown "$BJORN_USER:$BJORN_USER" \
+                        "$BJORN_PATH/config/web_auth.json"
+                    check_success \
+                        "Set web-authentication credential ownership"
+                    chmod 600 "$BJORN_PATH/config/web_auth.json"
+                    check_success \
+                        "Secured web-authentication credential file"
+                    break
+                fi
+
+                log "WARNING" "Web-authentication credential setup failed"
+                read -r -p "Retry credential setup? (Y/n): " retry_auth
+                case "$retry_auth" in
+                    n|N)
+                        log "INFO" "Web authentication left unconfigured"
+                        return 0
+                        ;;
+                esac
+            done
+            ;;
+        *)
+            log "INFO" "Web authentication left unconfigured"
+            log "INFO" "Configure it later with: sudo http_auth set <username>"
+            ;;
+    esac
 }
 
 
@@ -380,9 +474,13 @@ EOF
 
     # Enable and start services
     systemctl daemon-reload
+    check_success "Reloaded systemd configuration"
     systemctl enable bjorn.service
+    check_success "Enabled Bjorn service"
+    systemctl restart bjorn.service
+    check_success "Started Bjorn service"
 
-    check_success "Services setup completed"
+    log "SUCCESS" "Services setup completed"
 }
 
 # Configure USB Gadget
@@ -484,22 +582,41 @@ EOF
 
 # Verify installation
 verify_installation() {
+    local http_status="000"
+    local second
+    local verification_failed=0
+
     log "INFO" "Verifying installation..."
-    
-    # Check if services are running
+
+    for ((second = 0; second <= 90; second++)); do
+        http_status="$(
+            curl --silent --output /dev/null --write-out '%{http_code}' \
+                --max-time 2 http://127.0.0.1:8000/ || true
+        )"
+        if [[ "$http_status" == "200" || "$http_status" == "401" ]]; then
+            break
+        fi
+        if ((second % 5 == 0)); then
+            log "INFO" "Waiting for web interface: ${second}/90 seconds"
+        fi
+        sleep 1
+    done
+
     if ! systemctl is-active --quiet bjorn.service; then
-        log "WARNING" "BJORN service is not running"
+        log "ERROR" "BJORN service is not running"
+        verification_failed=1
     else
         log "SUCCESS" "BJORN service is running"
     fi
-    
-    # Check web interface
-    sleep 5
-    if curl -s http://localhost:8000 > /dev/null; then
-        log "SUCCESS" "Web interface is accessible"
+
+    if [[ "$http_status" == "200" || "$http_status" == "401" ]]; then
+        log "SUCCESS" "Web interface returned HTTP $http_status on port 8000"
     else
-        log "WARNING" "Web interface is not responding"
+        log "ERROR" "Web interface is not responding (HTTP $http_status)"
+        verification_failed=1
     fi
+
+    return "$verification_failed"
 }
 
 # Clean exit function
@@ -517,13 +634,14 @@ clean_exit() {
 
 # Main installation process
 main() {
-    log "INFO" "Starting BJORN installation..."
-
     # Check if script is run as root
     if [ "$(id -u)" -ne 0 ]; then
         echo "This script must be run as root. Please use 'sudo'."
         exit 1
     fi
+
+    initialize_logging
+    log "INFO" "Starting BJORN installation..."
 
     echo -e "${BLUE}BJORN Installation Options:${NC}"
     echo "1. Full installation (recommended)"
@@ -569,14 +687,19 @@ main() {
             CURRENT_STEP=5; show_progress "Setting up BJORN"
             setup_bjorn
 
-            CURRENT_STEP=6; show_progress "Configuring USB Gadget"
+            CURRENT_STEP=6; show_progress "Installing optional web-authentication tools"
+            configure_web_auth
+
+            CURRENT_STEP=7; show_progress "Configuring USB Gadget"
             configure_usb_gadget
 
-            CURRENT_STEP=7; show_progress "Setting up services"
+            CURRENT_STEP=8; show_progress "Setting up services"
             setup_services
 
-            CURRENT_STEP=8; show_progress "Verifying installation"
-            verify_installation
+            CURRENT_STEP=9; show_progress "Verifying installation"
+            if ! verify_installation; then
+                clean_exit 1
+            fi
             ;;
         2)
             echo "Custom installation - select components to install:"
@@ -584,6 +707,7 @@ main() {
             read -p "Configure system limits? (y/n): " limits
             read -p "Configure interfaces? (y/n): " interfaces
             read -p "Setup BJORN? (y/n): " bjorn
+            read -p "Configure web authentication? (y/n): " web_auth
             read -p "Configure USB Gadget? (y/n): " usb_gadget
             read -p "Setup services? (y/n): " services
 
@@ -591,9 +715,12 @@ main() {
             [ "$limits" = "y" ] && configure_system_limits
             [ "$interfaces" = "y" ] && configure_interfaces
             [ "$bjorn" = "y" ] && setup_bjorn
+            [ "$web_auth" = "y" ] && configure_web_auth
             [ "$usb_gadget" = "y" ] && configure_usb_gadget
             [ "$services" = "y" ] && setup_services
-            verify_installation
+            if ! verify_installation; then
+                clean_exit 1
+            fi
             ;;
         *)
             log "ERROR" "Invalid option selected"
@@ -614,7 +741,12 @@ main() {
     echo "   - Default Gateway: 172.20.2.1"
     echo "   - DNS Servers: 8.8.8.8, 8.8.4.4"
     echo "2. Web interface will be available at: http://[device-ip]:8000"
-    echo "3. Make sure your e-Paper HAT (2.13-inch) is properly connected"
+    if [ -L "$HTTP_AUTH_COMMAND_PATH" ]; then
+        echo "3. Web authentication can be managed with: sudo http_auth"
+    else
+        echo "3. Optional web-authentication tools were not installed"
+    fi
+    echo "4. Make sure your e-Paper HAT (2.13-inch) is properly connected"
 
     read -p "Would you like to reboot now? (y/n): " reboot_now
     if [ "$reboot_now" = "y" ]; then
@@ -629,8 +761,6 @@ main() {
     fi
 }
 
-main
-
-
-
-
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi

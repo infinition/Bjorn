@@ -33,6 +33,7 @@ class Display:
     def __init__(self, shared_data):
         """Initialize the display and start the main image and shared data update threads."""
         self.shared_data = shared_data
+        self.shutdown_event = threading.Event()
         self.config = self.shared_data.config
         self.shared_data.bjornstatustext2 = "Awakening..."
         self.commentaire_ia = Commentaireia()
@@ -60,20 +61,54 @@ class Display:
             logger.error(f"Error during display initialization: {e}")
             raise
 
-        self.main_image_thread = threading.Thread(target=self.update_main_image)
-        self.main_image_thread.daemon = True
+        self.main_image_thread = threading.Thread(
+            target=self.update_main_image,
+            name="BjornDisplayImage",
+        )
         self.main_image_thread.start()
 
-        self.update_shared_data_thread = threading.Thread(target=self.schedule_update_shared_data)
-        self.update_shared_data_thread.daemon = True
+        self.update_shared_data_thread = threading.Thread(
+            target=self.schedule_update_shared_data,
+            name="BjornDisplaySharedData",
+        )
         self.update_shared_data_thread.start()
 
-        self.update_vuln_count_thread = threading.Thread(target=self.schedule_update_vuln_count)
-        self.update_vuln_count_thread.daemon = True
+        self.update_vuln_count_thread = threading.Thread(
+            target=self.schedule_update_vuln_count,
+            name="BjornDisplayVulnerabilityCount",
+        )
         self.update_vuln_count_thread.start()
 
         self.scale_factor_x = self.shared_data.scale_factor_x
         self.scale_factor_y = self.shared_data.scale_factor_y
+
+    def should_stop(self):
+        """Return whether display work has been asked to stop."""
+        return (
+            self.shutdown_event.is_set()
+            or self.shared_data.display_should_exit
+        )
+
+    def wait_or_stop(self, timeout):
+        """Wait for a delay, returning early when shutdown is requested."""
+        return self.shutdown_event.wait(timeout) or self.should_stop()
+
+    def request_stop(self):
+        """Wake every display worker and request a clean shutdown."""
+        self.shared_data.display_should_exit = True
+        self.shutdown_event.set()
+
+    def background_threads(self):
+        """Return the display-owned worker threads for lifecycle joins."""
+        return [
+            self.main_image_thread,
+            self.update_shared_data_thread,
+            self.update_vuln_count_thread,
+        ]
+
+    def close_hardware(self):
+        """Power down the EPD and release GPIO callback resources."""
+        self.epd_helper.shutdown()
 
     def get_frise_position(self):
         """Get the frise position based on the display type."""
@@ -86,28 +121,35 @@ class Display:
 
     def schedule_update_shared_data(self):
         """Periodically update the shared data with the latest system information."""
-        while not self.shared_data.display_should_exit:
+        while not self.should_stop():
             self.update_shared_data()
-            time.sleep(25)
+            if self.wait_or_stop(25):
+                break
 
     def schedule_update_vuln_count(self):
         """Periodically update the vulnerability count on the display."""
-        while not self.shared_data.display_should_exit:
+        while not self.should_stop():
             self.update_vuln_count()
-            time.sleep(300)
+            if self.wait_or_stop(300):
+                break
 
     def update_main_image(self):
         """Update the main image on the display with the latest immagegen data."""
-        while not self.shared_data.display_should_exit:
+        while not self.should_stop():
             try:
                 self.shared_data.update_image_randomizer()
                 if self.shared_data.imagegen:
                     self.main_image = self.shared_data.imagegen
                 else:
                     logger.error("No image generated for current status.")
-                time.sleep(random.uniform(self.shared_data.image_display_delaymin, self.shared_data.image_display_delaymax))
+                if self.wait_or_stop(random.uniform(
+                    self.shared_data.image_display_delaymin,
+                    self.shared_data.image_display_delaymax,
+                )):
+                    break
             except Exception as e:
-                logger.error(f"An error occurred in update_main_image: {e}")
+                if not self.should_stop():
+                    logger.error(f"An error occurred in update_main_image: {e}")
 
     def get_open_files(self):
         """Get the number of open FD files on the system."""
@@ -278,7 +320,7 @@ class Display:
     def run(self):
         """Main loop for updating the EPD display with shared data."""
         self.manual_mode_txt = ""
-        while not self.shared_data.display_should_exit:
+        while not self.should_stop():
             try:
                 self.epd_helper.init_partial_update()
                 self.display_comment(self.shared_data.bjornorch_status)
@@ -353,9 +395,11 @@ class Display:
                     img_file.flush()
                     os.fsync(img_file.fileno())
                 
-                time.sleep(self.shared_data.screen_delay)
+                if self.wait_or_stop(self.shared_data.screen_delay):
+                    break
             except Exception as e:
-                logger.error(f"An error occurred: {e}")
+                if not self.should_stop():
+                    logger.error(f"An error occurred: {e}")
 
 def handle_exit_display(signum, frame, display_thread):
     """Handle the exit signal and close the display."""
