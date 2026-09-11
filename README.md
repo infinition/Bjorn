@@ -24,6 +24,7 @@ Bjorn is a « Tamagotchi like » sophisticated, autonomous network scanning, 
   - [Installation](#-installation)
 - [Quick Start](#-quick-start)
 - [Usage Example](#-usage-example)
+- [Community Add-ons](#-community-add-ons)
 - [Contributing](#-contributing)
 - [License](#-license)
 - [Contact](#-contact)
@@ -143,6 +144,14 @@ No constant monitoring needed - just deploy and let Bjorn do what it does best: 
 Bjorn is designed to be a community-driven weapon forge. Create and share your own attack modules!
 
 ⚠️ **For educational and authorized testing purposes only** ⚠️
+
+## 🧩 Community Add-ons
+
+Projects built by the community that extend Bjorn without forking it. Open a pull request to add yours.
+
+| Add-on | What it does |
+|---|---|
+| [bjorn-pisugar](https://github.com/markatsos/bjorn-pisugar) | PiSugar battery level on the e-ink display, automatic shutdown on low battery, and the board powering itself off when the Pi halts. Configurable from Bjorn's own config page. |
 
 ## 🤝 Contributing
 
