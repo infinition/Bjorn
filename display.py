@@ -39,6 +39,8 @@ class Display:
         self.semaphore = threading.Semaphore(10)
         self.screen_reversed = self.shared_data.screen_reversed
         self.web_screen_reversed = self.shared_data.web_screen_reversed
+        self._wifi_was_connected = False
+        self._ip_announce_until = 0.0
 
         # Define frise positions for different display types
         self.frise_positions = {
@@ -199,8 +201,20 @@ class Display:
                     self.manual_mode_txt = "M"
                 else:
                     self.manual_mode_txt = "A"
+                was_connected = self._wifi_was_connected
                 self.shared_data.wifi_connected = self.is_wifi_connected()
                 self.shared_data.usb_active = self.is_usb_connected()
+                # Briefly show IP when Wi-Fi (re)connects (#78)
+                if self.shared_data.wifi_connected and not was_connected:
+                    ip_addr = self._get_primary_ip()
+                    if ip_addr:
+                        self.shared_data.bjornstatustext2 = ip_addr
+                        self._ip_announce_until = time.time() + 30
+                elif self._ip_announce_until and time.time() > self._ip_announce_until:
+                    if self.shared_data.bjornstatustext2 and self._looks_like_ip(self.shared_data.bjornstatustext2):
+                        self.shared_data.bjornstatustext2 = ""
+                    self._ip_announce_until = 0.0
+                self._wifi_was_connected = self.shared_data.wifi_connected
                 self.get_open_files()
 
             except (FileNotFoundError, pd.errors.EmptyDataError) as e:
@@ -238,12 +252,34 @@ class Display:
             result = subprocess.Popen(['iwgetid', '-r'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             ssid, error = result.communicate()
             if result.returncode != 0:
-                logger.error(f"Error executing 'iwgetid -r': {error}")
+                # Not associated is normal when offline — don't spam error logs
                 return False
             return bool(ssid.strip())
         except Exception as e:
             logger.error(f"Error checking WiFi status: {e}")
             return False
+
+    @staticmethod
+    def _looks_like_ip(value):
+        parts = str(value).split('.')
+        return len(parts) == 4 and all(p.isdigit() for p in parts)
+
+    def _get_primary_ip(self):
+        """Best-effort primary IPv4 for status display."""
+        try:
+            result = subprocess.Popen(
+                ['hostname', '-I'],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            out, _ = result.communicate()
+            for addr in out.split():
+                if addr and not addr.startswith('127.') and not addr.startswith('169.254.'):
+                    return addr
+        except Exception as e:
+            logger.debug(f"Could not resolve primary IP: {e}")
+        return ""
 
     def is_manual_mode(self):
         """Check if the BjornOrch is in manual mode."""
@@ -358,17 +394,36 @@ class Display:
                 logger.error(f"An error occurred: {e}")
 
 def handle_exit_display(signum, frame, display_thread):
-    """Handle the exit signal and close the display."""
+    """Handle the exit signal, clear the e-Paper, and close the display."""
     global should_exit
     shared_data.display_should_exit = True
     logger.info("Exit signal received. Waiting for the main loop to finish...")
     try:
-        if main_loop and main_loop.epd:
-            main_loop.epd.init(main_loop.epd.sleep)
-            main_loop.epd.Dev_exit()
+        epd_helper = None
+        if main_loop is not None and getattr(main_loop, 'epd_helper', None):
+            epd_helper = main_loop.epd_helper
+        elif getattr(shared_data, 'epd_helper', None):
+            epd_helper = shared_data.epd_helper
+
+        if epd_helper is not None:
+            try:
+                epd_helper.clear()
+            except Exception as clear_err:
+                logger.warning(f"Could not clear display: {clear_err}")
+            try:
+                if hasattr(epd_helper.epd, 'sleep'):
+                    epd_helper.epd.sleep()
+            except Exception as sleep_err:
+                logger.warning(f"Could not sleep display: {sleep_err}")
+            try:
+                from resources.waveshare_epd import epdconfig
+                epdconfig.module_exit()
+            except Exception as exit_err:
+                logger.warning(f"Could not exit display module: {exit_err}")
     except Exception as e:
         logger.error(f"Error while closing the display: {e}")
-    display_thread.join()
+    if display_thread is not None:
+        display_thread.join()
     logger.info("Main loop finished. Clean exit.")
     sys.exit(0)
 

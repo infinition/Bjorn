@@ -123,8 +123,13 @@
         }
     
         function loadRecentLogs() {
-            fetch('/recent_logs')
-                .then(response => response.text())
+            fetch('/get_logs')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    return response.text();
+                })
                 .then(data => {
                     const logConsole = document.getElementById('log-console');
                     logConsole.innerHTML = `<pre>${data}</pre>`;

@@ -20,6 +20,7 @@ import signal
 import logging
 import time
 import sys
+import os
 import subprocess
 from init_shared import shared_data
 from display import Display, handle_exit_display
@@ -37,9 +38,13 @@ class Bjorn:
         self.commentaire_ia = Commentaireia()
         self.orchestrator_thread = None
         self.orchestrator = None
+        self.wifi_connected = False
+        self._net_check_cache = False
+        self._net_check_ts = 0.0
+        self._net_check_ttl = 5.0  # seconds — avoid hammering nmcli (#111)
 
     def run(self):
-        """Main loop for Bjorn. Waits for Wi-Fi connection and starts Orchestrator."""
+        """Main loop for Bjorn. Waits for network connection and starts Orchestrator."""
         # Wait for startup delay if configured in shared data
         if hasattr(self.shared_data, 'startup_delay') and self.shared_data.startup_delay > 0:
             logger.info(f"Waiting for startup delay: {self.shared_data.startup_delay} seconds")
@@ -54,19 +59,19 @@ class Bjorn:
 
 
     def check_and_start_orchestrator(self):
-        """Check Wi-Fi and start the orchestrator if connected."""
-        if self.is_wifi_connected():
+        """Check network connectivity and start the orchestrator if connected."""
+        if self.is_network_connected():
             self.wifi_connected = True
             if self.orchestrator_thread is None or not self.orchestrator_thread.is_alive():
                 self.start_orchestrator()
         else:
             self.wifi_connected = False
-            logger.info("Waiting for Wi-Fi connection to start Orchestrator...")
+            logger.info("Waiting for network connection to start Orchestrator...")
 
     def start_orchestrator(self):
         """Start the orchestrator thread."""
-        self.is_wifi_connected() # reCheck if Wi-Fi is connected before starting the orchestrator
-        if self.wifi_connected:  # Check if Wi-Fi is connected before starting the orchestrator
+        self.is_network_connected()  # reCheck before starting
+        if self.wifi_connected:
             if self.orchestrator_thread is None or not self.orchestrator_thread.is_alive():
                 logger.info("Starting Orchestrator thread...")
                 self.shared_data.orchestrator_should_exit = False
@@ -78,7 +83,7 @@ class Bjorn:
             else:
                 logger.info("Orchestrator thread is already running.")
         else:
-            logger.warning("Cannot start Orchestrator: Wi-Fi is not connected.")
+            logger.warning("Cannot start Orchestrator: no usable network connection.")
 
     def stop_orchestrator(self):
         """Stop the orchestrator thread."""
@@ -96,10 +101,85 @@ class Bjorn:
             logger.info("Orchestrator thread is not running.")
 
     def is_wifi_connected(self):
-        """Checks for Wi-Fi connectivity using the nmcli command."""
-        result = subprocess.Popen(['nmcli', '-t', '-f', 'active', 'dev', 'wifi'], stdout=subprocess.PIPE, text=True).communicate()[0]
-        self.wifi_connected = 'yes' in result
-        return self.wifi_connected
+        """Backward-compatible alias used elsewhere in the codebase."""
+        return self.is_network_connected()
+
+    def is_network_connected(self):
+        """
+        True when Wi-Fi or Ethernet (or other non-loopback iface) has connectivity.
+
+        - Uses LC_ALL=C so nmcli 'yes' matching works under non-English locales (#40).
+        - Also accepts Ethernet / any iface with a global IPv4 (#57).
+        - Caches results briefly to avoid continuous nmcli CPU load (#111).
+        """
+        now = time.time()
+        if (now - self._net_check_ts) < self._net_check_ttl:
+            self.wifi_connected = self._net_check_cache
+            return self._net_check_cache
+
+        connected = False
+        try:
+            env = dict(os.environ)
+            env['LC_ALL'] = 'C'
+            env['LANG'] = 'C'
+            proc = subprocess.Popen(
+                ['nmcli', '-t', '-f', 'active,ssid', 'dev', 'wifi'],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                env=env,
+            )
+            try:
+                stdout, _ = proc.communicate(timeout=3)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                stdout = ''
+            # nmcli -t lines look like: yes:MySSID  /  no:
+            for line in stdout.splitlines():
+                active = line.split(':', 1)[0].strip().lower()
+                if active in ('yes', 'oui', 'ja', 'sí', 'si'):
+                    connected = True
+                    break
+        except Exception as e:
+            logger.debug(f"nmcli wifi check failed: {e}")
+
+        if not connected:
+            connected = self._has_routable_ipv4()
+
+        self._net_check_cache = connected
+        self._net_check_ts = now
+        self.wifi_connected = connected
+        return connected
+
+    @staticmethod
+    def _has_routable_ipv4():
+        """Return True if any non-loopback interface has a global IPv4 address."""
+        try:
+            proc = subprocess.Popen(
+                ['ip', '-o', '-4', 'addr', 'show', 'up'],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            try:
+                stdout, _ = proc.communicate(timeout=3)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                return False
+            for line in stdout.splitlines():
+                # skip loopback and link-local
+                if ' lo ' in f' {line} ' or '127.' in line:
+                    continue
+                if 'inet ' in line or ' inet ' in f' {line}':
+                    # ip -o -4 addr: "2: eth0    inet 192.168.1.10/24 ..."
+                    parts = line.split()
+                    if len(parts) >= 4 and parts[2] == 'inet':
+                        addr = parts[3].split('/')[0]
+                        if not addr.startswith('127.') and not addr.startswith('169.254.'):
+                            return True
+        except Exception:
+            return False
+        return False
 
     
     @staticmethod

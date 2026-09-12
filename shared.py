@@ -156,6 +156,7 @@ class SharedData:
             "nmap_scan_aggressivity": "-T2",
             "portstart": 1,
             "portend": 2,
+            "scan_interface": "",
             
             "__title_timewaits__": "Time Wait Settings",
             "timewait_smb": 0,
@@ -265,6 +266,19 @@ class SharedData:
                 logger.info("EPD type: epd2in13_V4 screen reversed")
                 self.screen_reversed = True
                 self.web_screen_reversed = True
+            elif self.config["epd_type"] == "epd2in13b_v3":
+                logger.info("EPD type: epd2in13b_v3 (B/C tri-color)")
+                self.screen_reversed = True
+                self.web_screen_reversed = True
+            elif self.config["epd_type"] == "epd2in13":
+                logger.info("EPD type: epd2in13")
+                self.screen_reversed = False
+                self.web_screen_reversed = False
+            # Allow config override for unreadable / rotated panels (#113)
+            if "screen_reversed" in self.config:
+                self.screen_reversed = bool(self.config["screen_reversed"])
+            if "web_screen_reversed" in self.config:
+                self.web_screen_reversed = bool(self.config["web_screen_reversed"])
             self.epd_helper.init_full_update()
             self.width, self.height = self.epd_helper.epd.width, self.epd_helper.epd.height
             logger.info(f"EPD {self.config['epd_type']} initialized with size: {self.width}x{self.height}")

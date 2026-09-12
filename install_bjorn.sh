@@ -226,15 +226,32 @@ install_dependencies() {
         "libssl-dev"
         "libgpiod-dev"
         "libi2c-dev"
-        "libatlas-base-dev"
         "build-essential"
+    )
+
+    # Optional packages (removed or renamed on newer Debian, e.g. Trixie)
+    optional_packages=(
+        "libatlas-base-dev"
     )
     
     # Install packages
     for package in "${packages[@]}"; do
         log "INFO" "Installing $package..."
-        apt-get install -y "$package"
-        check_success "Installed $package"
+        if apt-get install -y "$package"; then
+            check_success "Installed $package"
+        else
+            log "ERROR" "Failed to install required package: $package"
+            handle_error "Installed $package"
+        fi
+    done
+
+    for package in "${optional_packages[@]}"; do
+        log "INFO" "Attempting optional package $package..."
+        if apt-cache show "$package" >/dev/null 2>&1; then
+            apt-get install -y "$package" || log "WARNING" "Optional package $package failed to install (continuing)"
+        else
+            log "WARNING" "Optional package $package not available on this OS (skipping)"
+        fi
     done
     
     # Update nmap scripts
@@ -319,9 +336,14 @@ setup_bjorn() {
     fi
 
     # Install requirements with --break-system-packages flag
+    # Prefer binary wheels; avoid stale hash mismatches from mirrors/piwheels
     log "INFO" "Installing Python requirements..."
     
-    pip3 install -r requirements.txt --break-system-packages
+    pip3 install --upgrade pip setuptools wheel --break-system-packages || true
+    pip3 install -r requirements.txt --break-system-packages --prefer-binary --no-cache-dir
+    # Ensure critical runtime deps are present even if a prior partial install failed
+    pip3 install "rich>=13.7" --break-system-packages --prefer-binary || true
+    python3 -c "import rich" || handle_error "Installed Python requirements (rich missing)"
     check_success "Installed Python requirements"
 
     # Set correct permissions
@@ -438,8 +460,18 @@ while ! ls /sys/class/udc > UDC 2>/dev/null; do
     sleep 1
 done
 
-if ! ip addr show usb0 | grep -q "172.20.2.1"; then
-    ifconfig usb0 172.20.2.1 netmask 255.255.255.0
+if ! ip addr show usb0 2>/dev/null | grep -q "172.20.2.1"; then
+    # Prefer iproute2; fall back to ifconfig if needed (#68)
+    if command -v ip >/dev/null 2>&1; then
+        ip link set usb0 up || true
+        ip addr flush dev usb0 || true
+        ip addr add 172.20.2.1/24 dev usb0 || true
+    elif command -v ifconfig >/dev/null 2>&1; then
+        ifconfig usb0 172.20.2.1 netmask 255.255.255.0 up
+    else
+        echo "Error: neither ip nor ifconfig available to configure usb0"
+        exit 1
+    fi
 else
     echo "Interface usb0 already configured."
 fi
@@ -537,16 +569,18 @@ main() {
     echo "3. epd2in13_V3"
     echo "4. epd2in13_V4"
     echo "5. epd2in7"
+    echo "6. epd2in13b_v3 (2.13-inch B/C Black/White/Red, 104x212)"
     
     while true; do
-        read -p "Enter your choice (1-4): " epd_choice
+        read -p "Enter your choice (1-6): " epd_choice
         case $epd_choice in
             1) EPD_VERSION="epd2in13"; break;;
             2) EPD_VERSION="epd2in13_V2"; break;;
             3) EPD_VERSION="epd2in13_V3"; break;;
             4) EPD_VERSION="epd2in13_V4"; break;;
             5) EPD_VERSION="epd2in7"; break;;
-            *) echo -e "${RED}Invalid choice. Please select 1-5.${NC}";;
+            6) EPD_VERSION="epd2in13b_v3"; break;;
+            *) echo -e "${RED}Invalid choice. Please select 1-6.${NC}";;
         esac
     done
 
