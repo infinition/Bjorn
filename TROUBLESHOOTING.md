@@ -63,6 +63,27 @@ ip addr show
 ip link show usb0
 ```
 
+### Orchestrator does not see Wi-Fi (non-English locale)
+
+nmcli output is locale-dependent. Prefer keeping `en_GB.UTF-8` / `C.UTF-8`, or use a build that forces `LC_ALL=C` for nmcli checks. Ethernet-only setups are supported when a routable IPv4 exists on any interface.
+
+### Unreadable Waveshare V4 / rotated panel
+
+In `config/shared_config.json` you can override orientation:
+
+```json
+"screen_reversed": false,
+"web_screen_reversed": false
+```
+
+### Web UI / manual attacks return 404
+
+Ensure the service is serving the latest `web/` assets. Manual attack logs use `/get_logs` (alias `/recent_logs`).
+
+### Port list cannot accept commas in Settings
+
+`portlist` and other list fields must be text inputs (comma-separated). Save from the Settings toolbar after editing.
+
 ### Permission Issues
 
 ```bash

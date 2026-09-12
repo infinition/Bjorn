@@ -249,16 +249,29 @@ class NetworkScanner:
     def get_network(self):
         """
         Retrieves the network information including the default gateway and subnet.
+        Honors optional config key scan_interface (#35 / #133).
         """
         try:
-            gws = netifaces.gateways()
-            default_gateway = gws['default'][netifaces.AF_INET][1]
-            iface = netifaces.ifaddresses(default_gateway)[netifaces.AF_INET][0]
-            ip_address = iface['addr']
-            netmask = iface['netmask']
+            preferred = getattr(self.shared_data, 'scan_interface', '') or ''
+            preferred = preferred.strip() if isinstance(preferred, str) else ''
+
+            if preferred:
+                iface_addrs = netifaces.ifaddresses(preferred).get(netifaces.AF_INET, [])
+                if not iface_addrs:
+                    raise RuntimeError(f"scan_interface '{preferred}' has no IPv4 address")
+                iface = iface_addrs[0]
+                ip_address = iface['addr']
+                netmask = iface['netmask']
+            else:
+                gws = netifaces.gateways()
+                default_gateway = gws['default'][netifaces.AF_INET][1]
+                iface = netifaces.ifaddresses(default_gateway)[netifaces.AF_INET][0]
+                ip_address = iface['addr']
+                netmask = iface['netmask']
+
             cidr = sum([bin(int(x)).count('1') for x in netmask.split('.')])
             network = ipaddress.IPv4Network(f"{ip_address}/{cidr}", strict=False)
-            self.logger.info(f"Network: {network}")
+            self.logger.info(f"Network: {network} (iface preference: {preferred or 'default'})")
             return network
         except Exception as e:
             self.logger.error(f"Error in get_network: {e}")

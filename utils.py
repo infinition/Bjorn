@@ -7,7 +7,13 @@ import json
 import csv
 import zipfile
 import uuid
-import cgi
+try:
+    import legacy_cgi as cgi
+except ImportError:
+    try:
+        import cgi
+    except ImportError:
+        cgi = None
 import io
 import importlib
 import logging
@@ -231,6 +237,8 @@ class WebUtils:
         try:
             content_length = int(handler.headers['Content-Length'])
             field_data = handler.rfile.read(content_length)
+            if cgi is None:
+                raise RuntimeError("cgi module unavailable; install legacy-cgi for Python 3.13+")
             field_storage = cgi.FieldStorage(fp=io.BytesIO(field_data), headers=handler.headers, environ={'REQUEST_METHOD': 'POST'})
 
             file_item = field_storage['file']
@@ -279,6 +287,37 @@ class WebUtils:
             handler.send_header("Content-type", "text/html")
             handler.end_headers()
             handler.wfile.write(html_content.encode('utf-8'))
+        except Exception as e:
+            handler.send_response(500)
+            handler.send_header("Content-type", "application/json")
+            handler.end_headers()
+            handler.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode('utf-8'))
+
+    def serve_vulnerabilities(self, handler):
+        """Serve vulnerability summary CSV as HTML for the web UI (#85)."""
+        try:
+            path = self.shared_data.vuln_summary_file
+            if not os.path.exists(path):
+                html = '<div class="credentials-container"><p>No vulnerability data yet. Enable scan_vuln_running to collect findings.</p></div>'
+            else:
+                html = self.generate_html_for_csv_files(os.path.dirname(path))
+                # Prefer showing the summary file content directly if present
+                rows = []
+                with open(path, newline='', encoding='utf-8', errors='replace') as f:
+                    reader = csv.reader(f)
+                    for row in reader:
+                        rows.append(row)
+                if rows:
+                    table = ['<div class="credentials-container"><table border="1" cellpadding="4">']
+                    for i, row in enumerate(rows):
+                        tag = 'th' if i == 0 else 'td'
+                        table.append('<tr>' + ''.join(f'<{tag}>{cell}</{tag}>' for cell in row) + '</tr>')
+                    table.append('</table></div>')
+                    html = '\n'.join(table)
+            handler.send_response(200)
+            handler.send_header("Content-type", "text/html")
+            handler.end_headers()
+            handler.wfile.write(html.encode('utf-8'))
         except Exception as e:
             handler.send_response(500)
             handler.send_header("Content-type", "application/json")
@@ -414,18 +453,23 @@ class WebUtils:
 
     def scan_wifi(self, handler):
         try:
-            result = subprocess.Popen(['sudo', 'iwlist', 'wlan0', 'scan'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            iface = getattr(self.shared_data, 'scan_interface', '') or 'wlan0'
+            iface = iface.strip() if isinstance(iface, str) and iface.strip() else 'wlan0'
+            # Prefer wifi iface names; fall back to wlan0 for ethernet-only scan_interface values
+            if iface.startswith('eth') or iface.startswith('usb') or iface.startswith('en'):
+                iface = 'wlan0'
+
+            result = subprocess.Popen(['sudo', 'iwlist', iface, 'scan'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             stdout, stderr = result.communicate()
             if result.returncode != 0:
                 raise Exception(stderr)
             networks = self.parse_scan_result(stdout)
             self.logger.info(f"Found {len(networks)} networks")
-            current_ssid = subprocess.Popen(['iwgetid', '-r'], stdout=subprocess.PIPE, text=True)
-            ssid_out, ssid_err = current_ssid.communicate()
-            if current_ssid.returncode != 0:
-                raise Exception(ssid_err)
-            current_ssid = ssid_out.strip()
-            self.logger.info(f"Current SSID: {current_ssid}")
+            current_ssid_proc = subprocess.Popen(['iwgetid', '-r'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            ssid_out, ssid_err = current_ssid_proc.communicate()
+            # When not associated, iwgetid exits non-zero — keep networks and use empty SSID
+            current_ssid = ssid_out.strip() if current_ssid_proc.returncode == 0 else ""
+            self.logger.info(f"Current SSID: {current_ssid or '(not connected)'}")
             handler.send_response(200)
             handler.send_header("Content-type", "application/json")
             handler.end_headers()
@@ -580,6 +624,15 @@ class WebUtils:
 
     def shutdown_system(self, handler):
         try:
+            # Clear e-Paper before power-off for OPSEC / ghost-image reduction
+            try:
+                if hasattr(self.shared_data, 'epd_helper') and self.shared_data.epd_helper:
+                    self.shared_data.epd_helper.clear()
+                    if hasattr(self.shared_data.epd_helper.epd, 'sleep'):
+                        self.shared_data.epd_helper.epd.sleep()
+            except Exception as clear_err:
+                self.logger.warning(f"Could not clear display before shutdown: {clear_err}")
+
             command = "sudo shutdown now"
             subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             handler.send_response(200)

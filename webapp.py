@@ -102,10 +102,14 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.web_utils.serve_manifest(self)
         elif self.path == '/apple-touch-icon':
             self.web_utils.serve_apple_touch_icon(self)
-        elif self.path == '/get_logs':
+        elif self.path in ('/get_logs', '/recent_logs'):
             self.web_utils.serve_logs(self)
         elif self.path == '/list_credentials':
             self.web_utils.serve_credentials_data(self)
+        elif self.path == '/vulnerabilities':
+            self.web_utils.serve_vulnerabilities(self)
+        elif self.path == '/vulnerabilities.html':
+            self.serve_file_gzipped(os.path.join(self.shared_data.webdir, 'vulnerabilities.html'), 'text/html')
         elif self.path.startswith('/list_files'):
             self.web_utils.list_files_endpoint(self)
         elif self.path.startswith('/download_file'):

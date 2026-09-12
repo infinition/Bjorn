@@ -46,6 +46,9 @@ class SSHBruteforce:
         """
         logger.info(f"Executing SSHBruteforce on {ip}:{port}...")
         self.shared_data.bjornorch_status = "SSHBruteforce"
+        hostname = (row or {}).get("Hostnames") or ""
+        # Show target IP and hostname on the e-Paper status line (#77)
+        self.shared_data.bjornstatustext2 = f"{ip}" + (f" {hostname}" if hostname and hostname != 'N/A' else "")
         success, results = self.bruteforce_ssh(ip, port)
         return 'success' if success else 'failed'
 

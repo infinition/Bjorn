@@ -136,7 +136,7 @@ class Orchestrator:
                 return False  # Skip child action if parent action has not succeeded
 
         # Check if the action is already successful and if retries are disabled for successful actions
-        if 'success' in row[action_key]:
+        if action_key in row and 'success' in row[action_key]:
             if not self.shared_data.retry_success_actions:
                 return False
             else:
@@ -198,7 +198,7 @@ class Orchestrator:
             row[action_key] = ""
 
         # Check if the action is already successful and if retries are disabled for successful actions
-        if 'success' in row[action_key]:
+        if action_key in row and 'success' in row[action_key]:
             if not self.shared_data.retry_success_actions:
                 return False
             else:

@@ -97,6 +97,7 @@
     "nmap_scan_aggressivity": "-T2",
     "portstart": 1,
     "portend": 2,
+    "scan_interface": "",
     "__title_timewaits__": "Time Wait Settings",
     "timewait_smb": 0,
     "timewait_ssh": 0,

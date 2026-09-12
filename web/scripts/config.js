@@ -2,6 +2,14 @@
 function generateConfigForm(config) {
     const formElement = document.querySelector(".config-form");
     formElement.innerHTML = ''; // Clear the form
+
+    const arrayFields = [
+        "portlist",
+        "mac_scan_blacklist",
+        "ip_scan_blacklist",
+        "steal_file_names",
+        "steal_file_extensions",
+    ];
     
     const leftColumn = document.createElement('div');
     leftColumn.classList.add('left-column');
@@ -24,15 +32,16 @@ function generateConfigForm(config) {
                     <label for="${key}">${key}</label>
                 </div>
             `;
-        } else if (Array.isArray(value)) {
-            const listValue = value.join(',');
+        } else if (Array.isArray(value) || arrayFields.includes(key)) {
+            // Always use text inputs for list fields so commas can be typed (#176)
+            const listValue = Array.isArray(value) ? value.join(',') : value;
             rightColumn.innerHTML += `
                 <div class="section-item">
                     <label for="${key}">${key}:</label>
-                    <input type="text" id="${key}" name="${key}" value="${listValue}">
+                    <input type="text" inputmode="text" autocomplete="off" id="${key}" name="${key}" value="${listValue}">
                 </div>
             `;
-        } else if (!isNaN(value) && !key.toLowerCase().includes("ip") && !key.toLowerCase().includes("mac")) {
+        } else if (!isNaN(value) && !key.toLowerCase().includes("ip") && !key.toLowerCase().includes("mac") && !arrayFields.includes(key)) {
             rightColumn.innerHTML += `
                 <div class="section-item">
                     <label for="${key}">${key}:</label>
@@ -83,7 +92,7 @@ function generateConfigForm(config) {
                 formDataObj[key] = value.split(',').map(item => {
                     const trimmedItem = item.trim();
                     return isNaN(trimmedItem) || trimmedItem == "" ? trimmedItem : parseFloat(trimmedItem);
-                });
+                }).filter(item => item !== "");
             } else {
                 formDataObj[key] = value === 'on' ? true : (isNaN(value) ? value : parseFloat(value));
             }
