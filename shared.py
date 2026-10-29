@@ -282,6 +282,14 @@ class SharedData:
         self.wifichanged = False
         self.bluetooth_active = False
         self.wifi_connected = False
+        self.wifi_setup_active = False
+        self.wifi_setup_ssid = ""
+        self.wifi_setup_password = ""
+        self.wifi_setup_ip = "10.42.0.1"
+        self.wifi_setup_status = ""
+        self.wifi_setup_networks = []
+        self.wifi_setup_manager = None
+        self.device_ip = ""
         self.pan_connected = False
         self.usb_active = False
         self.bjornsays = "Hacking away..."

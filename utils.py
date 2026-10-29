@@ -437,6 +437,54 @@ class WebUtils:
             self.logger.error(f"Error scanning Wi-Fi networks: {e}")
             handler.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
 
+    def serve_wifi_setup_status(self, handler):
+        manager = getattr(self.shared_data, "wifi_setup_manager", None)
+        response = {
+            "active": self.shared_data.wifi_setup_active,
+            "ssid": self.shared_data.wifi_setup_ssid,
+            "ip": self.shared_data.wifi_setup_ip,
+            "status": self.shared_data.wifi_setup_status,
+            "networks": self.shared_data.wifi_setup_networks,
+            "connecting": bool(manager and manager.connecting),
+        }
+        handler.send_response(200)
+        handler.send_header("Content-Type", "application/json")
+        handler.send_header("Cache-Control", "no-store")
+        handler.end_headers()
+        handler.wfile.write(json.dumps(response).encode("utf-8"))
+
+    def submit_wifi_setup_credentials(self, handler):
+        try:
+            manager = getattr(self.shared_data, "wifi_setup_manager", None)
+            if manager is None or not self.shared_data.wifi_setup_active:
+                raise RuntimeError("Wi-Fi setup mode is not active.")
+
+            content_length = int(handler.headers.get("Content-Length", "0"))
+            if content_length <= 0 or content_length > 8192:
+                raise ValueError("Invalid request size.")
+            params = json.loads(handler.rfile.read(content_length).decode("utf-8"))
+            if not isinstance(params, dict):
+                raise ValueError("Invalid Wi-Fi setup request.")
+            manager.submit_credentials(
+                params.get("ssid", ""),
+                params.get("password", ""),
+            )
+            response = {"status": "connecting", "message": "Trying to connect to Wi-Fi."}
+            status_code = 202
+        except (ValueError, RuntimeError, TypeError, json.JSONDecodeError) as error:
+            response = {"status": "error", "message": str(error)}
+            status_code = 400
+        except Exception as error:
+            self.logger.error(f"Could not start Wi-Fi setup connection: {error}")
+            response = {"status": "error", "message": "Could not start the connection attempt."}
+            status_code = 500
+
+        handler.send_response(status_code)
+        handler.send_header("Content-Type", "application/json")
+        handler.send_header("Cache-Control", "no-store")
+        handler.end_headers()
+        handler.wfile.write(json.dumps(response).encode("utf-8"))
+
     def parse_scan_result(self, scan_output):
         networks = []
         for line in scan_output.split('\n'):
@@ -810,6 +858,4 @@ method=auto
             handler.send_header("Content-type", "application/json")
             handler.end_headers()
             handler.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode('utf-8'))
-
-
 

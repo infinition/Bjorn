@@ -20,13 +20,13 @@ import signal
 import logging
 import time
 import sys
-import subprocess
 from init_shared import shared_data
 from display import Display, handle_exit_display
 from comment import Commentaireia
 from webapp import web_thread, handle_exit_web
 from orchestrator import Orchestrator
 from logger import Logger
+from wifi_setup import WifiSetupManager
 
 logger = Logger(name="Bjorn.py", level=logging.DEBUG)
 
@@ -37,6 +37,11 @@ class Bjorn:
         self.commentaire_ia = Commentaireia()
         self.orchestrator_thread = None
         self.orchestrator = None
+        self.wifi_setup = WifiSetupManager(self.shared_data, logger)
+        self.shared_data.wifi_setup_manager = self.wifi_setup
+        self.wifi_reconnect_grace = 60
+        self.wifi_disconnected_since = None
+        self.has_connected_wifi = False
 
     def run(self):
         """Main loop for Bjorn. Waits for Wi-Fi connection and starts Orchestrator."""
@@ -47,21 +52,56 @@ class Bjorn:
 
         # Main loop to keep Bjorn running
         while not self.shared_data.should_exit:
-            if not self.shared_data.manual_mode:
-                self.check_and_start_orchestrator()
+            self.check_and_start_orchestrator()
             time.sleep(10)  # Main loop idle waiting
-
-
 
     def check_and_start_orchestrator(self):
         """Check Wi-Fi and start the orchestrator if connected."""
         if self.is_wifi_connected():
             self.wifi_connected = True
-            if self.orchestrator_thread is None or not self.orchestrator_thread.is_alive():
+            self.shared_data.wifi_connected = True
+            self.has_connected_wifi = True
+            self.wifi_disconnected_since = None
+            if (not self.shared_data.manual_mode and
+                    (self.orchestrator_thread is None or not self.orchestrator_thread.is_alive())):
                 self.start_orchestrator()
         else:
             self.wifi_connected = False
-            logger.info("Waiting for Wi-Fi connection to start Orchestrator...")
+            self.shared_data.wifi_connected = False
+
+            if self.wifi_setup.access_point_active:
+                self.ensure_web_server()
+                return
+
+            if not self.has_connected_wifi:
+                logger.info("No saved Wi-Fi connection; enabling the setup access point.")
+                if self.wifi_setup.start_access_point():
+                    self.ensure_web_server()
+                return
+
+            if self.wifi_disconnected_since is None:
+                self.wifi_disconnected_since = time.monotonic()
+                logger.warning(
+                    f"Wi-Fi connection lost; waiting {self.wifi_reconnect_grace} seconds "
+                    "before enabling setup mode."
+                )
+                return
+
+            disconnected_for = time.monotonic() - self.wifi_disconnected_since
+            if disconnected_for >= self.wifi_reconnect_grace:
+                logger.warning(
+                    f"Wi-Fi has been unavailable for {self.wifi_reconnect_grace} seconds; "
+                    "enabling setup mode."
+                )
+                if self.wifi_setup.start_access_point():
+                    self.ensure_web_server()
+
+    @staticmethod
+    def ensure_web_server():
+        """Start the web server if setup mode needs it and it is not running."""
+        if web_thread.ident is None:
+            logger.info("Starting the web server for Wi-Fi setup...")
+            web_thread.start()
 
     def start_orchestrator(self):
         """Start the orchestrator thread."""
@@ -96,9 +136,8 @@ class Bjorn:
             logger.info("Orchestrator thread is not running.")
 
     def is_wifi_connected(self):
-        """Checks for Wi-Fi connectivity using the nmcli command."""
-        result = subprocess.Popen(['nmcli', '-t', '-f', 'active', 'dev', 'wifi'], stdout=subprocess.PIPE, text=True).communicate()[0]
-        self.wifi_connected = 'yes' in result
+        """Return whether wlan0 is connected to an infrastructure network."""
+        self.wifi_connected = self.wifi_setup.is_station_connected()
         return self.wifi_connected
 
     
@@ -139,15 +178,16 @@ if __name__ == "__main__":
         shared_data.display_should_exit = False  # Initialize display should_exit
         display_thread = Bjorn.start_display()
 
-        logger.info("Starting Bjorn thread...")
         bjorn = Bjorn(shared_data)
-        shared_data.bjorn_instance = bjorn  # Assigner l'instance de Bjorn à shared_data
-        bjorn_thread = threading.Thread(target=bjorn.run)
-        bjorn_thread.start()
+        shared_data.bjorn_instance = bjorn
 
         if shared_data.config["websrv"]:
             logger.info("Starting the web server...")
             web_thread.start()
+
+        logger.info("Starting Bjorn thread...")
+        bjorn_thread = threading.Thread(target=bjorn.run)
+        bjorn_thread.start()
 
         signal.signal(signal.SIGINT, lambda sig, frame: handle_exit(sig, frame, display_thread, bjorn_thread, web_thread))
         signal.signal(signal.SIGTERM, lambda sig, frame: handle_exit(sig, frame, display_thread, bjorn_thread, web_thread))

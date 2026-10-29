@@ -58,8 +58,49 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         # Handle GET requests. Serve the HTML interface and the EPD image.
-        if self.path == '/index.html' or self.path == '/':
-            self.serve_file_gzipped(os.path.join(self.shared_data.webdir, 'index.html'), 'text/html')
+        setup_probe_paths = {
+            "/generate_204",
+            "/gen_204",
+            "/hotspot-detect.html",
+            "/connecttest.txt",
+            "/ncsi.txt",
+            "/canonical.html",
+        }
+        if self.shared_data.wifi_setup_active:
+            allowed_setup_paths = {
+                "/", "/setup", "/setup.html", "/setup-logo.png",
+                "/wifi_setup_status",
+                *setup_probe_paths,
+            }
+            if self.path not in allowed_setup_paths:
+                self.send_response(302)
+                self.send_header("Location", "/setup")
+                self.end_headers()
+                return
+        elif not self.shared_data.config.get("websrv", True):
+            self.send_response(404)
+            self.end_headers()
+            return
+
+        if self.path in ("/setup", "/setup.html") or (
+                self.shared_data.wifi_setup_active and self.path in setup_probe_paths):
+            self.serve_file_gzipped(
+                os.path.join(self.shared_data.webdir, "setup.html"), "text/html"
+            )
+        elif self.path == "/wifi_setup_status":
+            self.web_utils.serve_wifi_setup_status(self)
+        elif self.path == "/setup-logo.png":
+            self.serve_file_gzipped(
+                os.path.join(self.shared_data.webdir, "images", "bjorn_icon.png"),
+                "image/png",
+            )
+        elif self.path == "/index.html" or self.path == '/':
+            if self.shared_data.wifi_setup_active:
+                self.serve_file_gzipped(
+                    os.path.join(self.shared_data.webdir, "setup.html"), "text/html"
+                )
+            else:
+                self.serve_file_gzipped(os.path.join(self.shared_data.webdir, 'index.html'), 'text/html')
         elif self.path == '/config.html':
             self.serve_file_gzipped(os.path.join(self.shared_data.webdir, 'config.html'), 'text/html')
         elif self.path == '/actions.html':
@@ -112,16 +153,29 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.web_utils.download_file(self)
         elif self.path.startswith('/download_backup'):
             self.web_utils.download_backup(self)
+        elif self.shared_data.wifi_setup_active:
+            self.send_response(302)
+            self.send_header("Location", "/setup")
+            self.end_headers()
         else:
             super().do_GET()
 
     def do_POST(self):
         # Handle POST requests for saving configuration, connecting to Wi-Fi, clearing files, rebooting, and shutting down.
+        if (self.shared_data.wifi_setup_active and self.path != "/setup_wifi") or (
+                not self.shared_data.wifi_setup_active and
+                not self.shared_data.config.get("websrv", True)):
+            self.send_response(404)
+            self.end_headers()
+            return
+
         if self.path == '/save_config':
             self.web_utils.save_configuration(self)
         elif self.path == '/connect_wifi':
             self.web_utils.connect_wifi(self)
             self.shared_data.wifichanged = True  # Set the flag when Wi-Fi is connected
+        elif self.path == '/setup_wifi':
+            self.web_utils.submit_wifi_setup_credentials(self)
         elif self.path == '/disconnect_wifi':  # New route to disconnect Wi-Fi
             self.web_utils.disconnect_and_clear_wifi(self)
         elif self.path == '/clear_files':
@@ -169,6 +223,7 @@ class WebThread(threading.Thread):
             try:
                 with socketserver.TCPServer(("", self.port), self.handler_class) as httpd:
                     self.httpd = httpd
+                    httpd.timeout = 1
                     logger.info(f"Serving at port {self.port}")
                     while not self.shared_data.webapp_should_exit:
                         httpd.handle_request()

@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#14202a">
+    <title>Bjorn | Wi-Fi Setup</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --night: #14202a;
+            --deep: #0c141c;
+            --ink: #17232b;
+            --parchment: #f2e7cd;
+            --paper: #fff9ec;
+            --gold: #c99b52;
+            --line: #c6b38e;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            padding: 30px 16px;
+            color: var(--paper);
+            background:
+                radial-gradient(ellipse at 18% 0%, #42627480 0, transparent 38%),
+                radial-gradient(ellipse at 100% 85%, #8b593033 0, transparent 35%),
+                repeating-linear-gradient(135deg, #ffffff05 0 1px, transparent 1px 7px),
+                linear-gradient(145deg, var(--night), var(--deep) 76%);
+            font-family: Georgia, "Palatino Linotype", serif;
+        }
+
+        main {
+            width: min(100%, 480px);
+            margin: 0 auto;
+            padding: 10px;
+            border: 1px solid #d4b87a;
+            border-radius: 12px 12px 3px 12px;
+            background: linear-gradient(145deg, #f6ecd7, var(--parchment));
+            box-shadow: 0 24px 70px #0008, inset 0 0 0 3px #fff5;
+        }
+
+        .inner {
+            padding: clamp(18px, 5vw, 30px);
+            border: 1px solid #bba77f;
+            border-radius: 7px 7px 2px 7px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            min-height: 112px;
+            padding: 14px 17px;
+            border: 1px solid #9c7844;
+            border-radius: 7px 7px 2px 7px;
+            color: #fff4da;
+            background:
+                radial-gradient(ellipse at 19% 40%, #53778c99, transparent 50%),
+                linear-gradient(120deg, #203747, #101a24 72%);
+            box-shadow: inset 0 0 0 2px #ffffff0d;
+        }
+
+        .brand img {
+            display: block;
+            width: 78px;
+            height: 94px;
+            object-fit: contain;
+            filter: drop-shadow(0 5px 5px #0008);
+        }
+
+        .brand-copy { min-width: 0; }
+
+        .eyebrow {
+            margin: 0 0 3px;
+            color: #dfbd78;
+            font: 700 0.68rem/1.2 system-ui, sans-serif;
+            letter-spacing: 0.19em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 0;
+            color: #fff5df;
+            font-size: clamp(2.4rem, 12vw, 3.35rem);
+            line-height: 0.92;
+            letter-spacing: -0.06em;
+        }
+
+        .brand-note {
+            margin: 8px 0 0;
+            color: #c6d1d2;
+            font: 0.78rem/1.3 system-ui, sans-serif;
+            letter-spacing: 0.04em;
+        }
+
+        .intro {
+            margin: 19px 2px 23px;
+            color: #384247;
+            font: 0.94rem/1.55 system-ui, sans-serif;
+        }
+
+        label {
+            display: block;
+            margin: 18px 0 7px;
+            color: #4b493d;
+            font: 700 0.78rem/1.3 system-ui, sans-serif;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+        }
+
+        input, select, button {
+            width: 100%;
+            min-height: 48px;
+            border: 1px solid #9d927a;
+            border-radius: 5px;
+            font: 1rem system-ui, sans-serif;
+        }
+
+        input, select {
+            padding: 11px 12px;
+            color: var(--ink);
+            background: var(--paper);
+            color-scheme: light;
+        }
+
+        input:focus, select:focus {
+            outline: 3px solid #c99b5255;
+            border-color: #99703a;
+        }
+
+        button {
+            margin-top: 23px;
+            border-color: #9e7134;
+            color: #fff5df;
+            background: linear-gradient(115deg, #8b4e35, #623a2e);
+            box-shadow: inset 0 1px #ffffff25, 0 3px 0 #37251d;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            cursor: pointer;
+        }
+
+        button:active { transform: translateY(1px); }
+        button:disabled { opacity: 0.6; cursor: wait; }
+
+        #status {
+            min-height: 1.5em;
+            margin: 18px 0 0;
+            padding: 10px 12px;
+            border-left: 3px solid var(--gold);
+            color: #384247;
+            background: #e7d9ba;
+            font: 0.9rem/1.5 system-ui, sans-serif;
+        }
+
+        .footnote {
+            margin: 19px 2px 0;
+            padding-top: 13px;
+            border-top: 1px solid #b8a783;
+            color: #5d625c;
+            font: 0.78rem/1.5 system-ui, sans-serif;
+        }
+
+        @media (max-width: 360px) {
+            .brand { gap: 12px; padding-inline: 11px; }
+            .brand img { width: 66px; height: 84px; }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <div class="inner">
+        <header class="brand">
+            <img src="/setup-logo.png" alt="Bjorn Viking mascot">
+            <div class="brand-copy">
+                <p class="eyebrow">Wi-Fi provisioning</p>
+                <h1>Bjorn</h1>
+                <p class="brand-note">A safe harbor for your connection</p>
+            </div>
+        </header>
+
+        <p class="intro">Choose a nearby network and enter its password. Bjorn will remember the route and reconnect on the next voyage.</p>
+
+        <form id="wifi-form">
+            <label for="networks">Nearby networks</label>
+            <select id="networks">
+                <option value="">Loading networks…</option>
+            </select>
+
+            <label for="ssid">Network name (SSID)</label>
+            <input id="ssid" name="ssid" maxlength="32" autocomplete="off" required>
+
+            <label for="password">Wi-Fi password</label>
+            <input id="password" name="password" type="password" autocomplete="new-password">
+
+            <button id="connect" type="submit">Connect Bjorn</button>
+        </form>
+        <p id="status" role="status" aria-live="polite">Looking for nearby networks…</p>
+        <p class="footnote">The list is scanned when setup Wi-Fi starts. If your network is hidden, type its name above. An empty password is treated as an open network.</p>
+    </div>
+</main>
+<script>
+    const form = document.getElementById("wifi-form");
+    const networkSelect = document.getElementById("networks");
+    const ssidInput = document.getElementById("ssid");
+    const statusText = document.getElementById("status");
+    const connectButton = document.getElementById("connect");
+
+    async function loadSetupStatus() {
+        try {
+            const response = await fetch("/wifi_setup_status", { cache: "no-store" });
+            const data = await response.json();
+            if (networkSelect.options.length <= 1) {
+                networkSelect.replaceChildren(new Option("Select a network…", ""));
+                for (const network of data.networks || []) {
+                    networkSelect.add(new Option(network, network));
+                }
+                if (!data.networks || data.networks.length === 0) {
+                    statusText.textContent = "No networks found. Type a network name to continue.";
+                }
+            }
+            if (data.status && !data.connecting) {
+                statusText.textContent = data.status;
+            }
+            if (data.active && !data.connecting) {
+                connectButton.disabled = false;
+            }
+        } catch (error) {
+            statusText.textContent = "Setup page is temporarily unavailable. Reconnect to Bjorn's setup Wi-Fi and retry.";
+        }
+    }
+
+    networkSelect.addEventListener("change", () => {
+        if (networkSelect.value) ssidInput.value = networkSelect.value;
+    });
+
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        connectButton.disabled = true;
+        statusText.textContent = "Connecting… This page may disconnect while Bjorn joins your Wi-Fi.";
+        try {
+            const response = await fetch("/setup_wifi", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ssid: ssidInput.value,
+                    password: document.getElementById("password").value
+                })
+            });
+            const data = await response.json();
+            statusText.textContent = data.message;
+            if (!response.ok) connectButton.disabled = false;
+        } catch (error) {
+            statusText.textContent = "Connection is being attempted. If it fails, Bjorn's setup Wi-Fi will return.";
+            connectButton.disabled = false;
+        }
+    });
+
+    loadSetupStatus();
+    setInterval(loadSetupStatus, 3000);
+</script>
+</body>
+</html>

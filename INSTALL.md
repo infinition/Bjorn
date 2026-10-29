@@ -56,6 +56,20 @@ sudo ./install_bjorn.sh
 # Choose the choice 1 for automatic installation. It may take a while as a lot of packages and modules will be installed. You must reboot at the end.
 ```
 
+### 📶 Wi-Fi Setup When Offline
+
+If Bjorn starts without a Wi-Fi connection, it creates a temporary password-protected
+access point named `Bjorn-connect-####`. The e-Paper display shows the access-point
+password and the setup URL. Connect a phone or computer to that Wi-Fi network, then
+open the displayed URL (for example, `http://10.42.0.1:8000/setup`) to choose a nearby
+network and enter its password. Bjorn saves the connection and returns to setup mode
+if it cannot connect.
+
+This requires NetworkManager (`nmcli`), which `install_bjorn.sh` installs and enables
+automatically, and a Wi-Fi adapter that supports access-point mode. Some phones do not
+automatically open captive-portal pages; use the URL shown on the display if no setup
+page appears.
+
 ### 🧰 Manual Install
 
 #### Step 1: Activate SPI & I2C
@@ -98,6 +112,7 @@ sudo apt-get update && sudo apt-get upgrade -y
   bluez \
   dhcpcd5 \
   bridge-utils \
+  network-manager \
   python3-pil
 
 

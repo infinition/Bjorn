@@ -217,6 +217,7 @@ install_dependencies() {
         "bluez"
         "dhcpcd5"
         "bridge-utils"
+        "network-manager"
         "python3-pil"
         "libjpeg-dev"
         "zlib1g-dev"
@@ -240,6 +241,35 @@ install_dependencies() {
     # Update nmap scripts
     nmap --script-updatedb
     check_success "Dependencies installation completed"
+
+    ensure_network_manager
+}
+
+# Make sure NetworkManager (nmcli) is installed and running.
+# Bjorn relies on nmcli for Wi-Fi scanning, connecting, and the
+# offline Wi-Fi setup access point, so this must be guaranteed.
+ensure_network_manager() {
+    log "INFO" "Verifying NetworkManager (nmcli) availability..."
+
+    if ! command -v nmcli >/dev/null 2>&1; then
+        log "WARNING" "nmcli not found after installing network-manager, retrying..."
+        apt-get install -y network-manager
+        check_success "Installed network-manager"
+    fi
+
+    if ! command -v nmcli >/dev/null 2>&1; then
+        log "ERROR" "nmcli is still unavailable. Wi-Fi management features will not work."
+        return 1
+    fi
+
+    systemctl enable NetworkManager >/dev/null 2>&1
+    systemctl start NetworkManager >/dev/null 2>&1
+
+    if systemctl is-active --quiet NetworkManager; then
+        log "SUCCESS" "NetworkManager is installed and running."
+    else
+        log "WARNING" "NetworkManager is installed but the service is not active."
+    fi
 }
 
 # Configure system limits
@@ -492,7 +522,14 @@ verify_installation() {
     else
         log "SUCCESS" "BJORN service is running"
     fi
-    
+
+    # Check nmcli, required for Wi-Fi management and the offline setup access point
+    if command -v nmcli >/dev/null 2>&1; then
+        log "SUCCESS" "nmcli is available"
+    else
+        log "WARNING" "nmcli is not available; Wi-Fi setup features will not work"
+    fi
+
     # Check web interface
     sleep 5
     if curl -s http://localhost:8000 > /dev/null; then

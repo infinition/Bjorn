@@ -21,6 +21,8 @@ import glob
 import logging
 import random
 import sys
+import netifaces
+import qrcode
 from PIL import Image, ImageDraw
 from init_shared import shared_data  
 from comment import Commentaireia
@@ -74,6 +76,14 @@ class Display:
 
         self.scale_factor_x = self.shared_data.scale_factor_x
         self.scale_factor_y = self.shared_data.scale_factor_y
+
+        # Periodically replace the message text with the device IP.
+        self.ip_screen_interval = 60  # Seconds between IP screen appearances.
+        self.ip_screen_duration = 6  # Seconds the IP screen stays visible.
+        self.next_ip_screen_time = time.time() + 15
+        self.ip_screen_until = 0
+        self.wifi_setup_qr_url = None
+        self.wifi_setup_qr_image = None
 
     def get_frise_position(self):
         """Get the frise position based on the display type."""
@@ -201,6 +211,7 @@ class Display:
                     self.manual_mode_txt = "A"
                 self.shared_data.wifi_connected = self.is_wifi_connected()
                 self.shared_data.usb_active = self.is_usb_connected()
+                self.shared_data.device_ip = self.get_device_ip()
                 self.get_open_files()
 
             except (FileNotFoundError, pd.errors.EmptyDataError) as e:
@@ -234,6 +245,8 @@ class Display:
 
     def is_wifi_connected(self):
         """Check if WiFi is connected by checking the current SSID."""
+        if self.shared_data.wifi_setup_active:
+            return False
         try:
             result = subprocess.Popen(['iwgetid', '-r'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             ssid, error = result.communicate()
@@ -275,12 +288,156 @@ class Display:
             logger.error(f"Error checking USB connection status: {e}")
             return False
 
+    def get_device_ip(self):
+        """Return the device's current IP address on its default-route interface."""
+        try:
+            gateways = netifaces.gateways()
+            default_gateway = gateways.get('default', {}).get(netifaces.AF_INET)
+            if not default_gateway:
+                return ""
+            interface = default_gateway[1]
+            addresses = netifaces.ifaddresses(interface).get(netifaces.AF_INET)
+            if not addresses:
+                return ""
+            return addresses[0].get('addr', "")
+        except Exception as e:
+            logger.debug(f"Error getting device IP: {e}")
+            return ""
+
+    def render_detail_screen(self, title, details, title_font=None, qr_image=None):
+        """Render a full-screen title and list of (label, font) lines."""
+        image = Image.new('1', (self.shared_data.width, self.shared_data.height), 255)
+        draw = ImageDraw.Draw(image)
+        margin = int(5 * self.scale_factor_x)
+        y = int(8 * self.scale_factor_y)
+        title_font = title_font or self.shared_data.font_arialbold
+        content_bottom = self.shared_data.height - margin
+        qr_top = None
+        if qr_image is not None:
+            qr_top = self.shared_data.height - margin - qr_image.height
+            content_bottom = qr_top - int(5 * self.scale_factor_y)
+
+        draw.rectangle(
+            (1, 1, self.shared_data.width - 1, self.shared_data.height - 1),
+            outline=0,
+        )
+        title_x = max(
+            margin,
+            (self.shared_data.width - title_font.getlength(title)) / 2,
+        )
+        draw.text((title_x, y), title, font=title_font, fill=0)
+        y += int(22 * self.scale_factor_y)
+        draw.line((margin, y - 2, self.shared_data.width - margin, y - 2), fill=0)
+
+        for text, text_font in details:
+            for line in self.wrap_setup_text(
+                    text, text_font, self.shared_data.width - 2 * margin):
+                bounds = text_font.getbbox(line)
+                line_height = max(10, bounds[3] - bounds[1])
+                if y + line_height > content_bottom:
+                    break
+                draw.text((margin, y), line, font=text_font, fill=0)
+                y += line_height + 3
+            if y >= content_bottom:
+                break
+
+        if qr_image is not None:
+            qr_x = (self.shared_data.width - qr_image.width) // 2
+            image.paste(qr_image, (qr_x, qr_top))
+
+        display_image = image.transpose(Image.ROTATE_180) if self.screen_reversed else image
+        self.epd_helper.display_partial(display_image)
+        self.epd_helper.display_partial(display_image)
+
+        web_image = image.transpose(Image.ROTATE_180) if self.web_screen_reversed else image
+        with open(os.path.join(self.shared_data.webdir, "screen.png"), 'wb') as image_file:
+            web_image.save(image_file)
+
+    def display_wifi_setup(self):
+        """Show the temporary access point credentials and setup URL."""
+        font = self.shared_data.font_arial9
+        bold_font = self.shared_data.font_arialbold
+        portal_url = f"http://{self.shared_data.wifi_setup_ip}:8000/setup"
+        details = [
+            ("Join Wi-Fi:", bold_font),
+            (self.shared_data.wifi_setup_ssid, font),
+            ("Password:", bold_font),
+            (self.shared_data.wifi_setup_password, font),
+            ("Scan QR or open:", bold_font),
+            (portal_url, font),
+        ]
+        if portal_url != self.wifi_setup_qr_url:
+            qr = qrcode.QRCode(
+                error_correction=qrcode.constants.ERROR_CORRECT_M,
+                box_size=3,
+                border=4,
+            )
+            qr.add_data(portal_url)
+            qr.make(fit=True)
+            self.wifi_setup_qr_image = qr.make_image(
+                fill_color="black", back_color="white"
+            ).get_image().convert("1")
+            self.wifi_setup_qr_url = portal_url
+
+        self.render_detail_screen(
+            "BJORN",
+            details,
+            title_font=self.shared_data.font_viking,
+            qr_image=self.wifi_setup_qr_image,
+        )
+
+    @staticmethod
+    def wrap_setup_text(text, font, max_width):
+        """Wrap setup details safely, including long URLs without spaces."""
+        lines = []
+        current = ""
+        for word in str(text).split():
+            while font.getlength(word) > max_width:
+                part = ""
+                while word and font.getlength(part + word[0]) <= max_width:
+                    part += word[0]
+                    word = word[1:]
+                if not part:
+                    break
+                if current:
+                    lines.append(current)
+                    current = ""
+                lines.append(part)
+            if word:
+                candidate = f"{current} {word}".strip()
+                if current and font.getlength(candidate) > max_width:
+                    lines.append(current)
+                    current = word
+                else:
+                    current = candidate
+        if current:
+            lines.append(current)
+        return lines
+
     def run(self):
         """Main loop for updating the EPD display with shared data."""
         self.manual_mode_txt = ""
         while not self.shared_data.display_should_exit:
             try:
                 self.epd_helper.init_partial_update()
+                if self.shared_data.wifi_setup_active:
+                    self.ip_screen_until = 0
+                    self.display_wifi_setup()
+                    time.sleep(self.shared_data.screen_delay)
+                    continue
+
+                now = time.time()
+                if self.shared_data.wifi_connected and self.shared_data.device_ip:
+                    if self.ip_screen_until and now >= self.ip_screen_until:
+                        self.ip_screen_until = 0
+                    if self.ip_screen_until == 0 and now >= self.next_ip_screen_time:
+                        self.ip_screen_until = now + self.ip_screen_duration
+                        self.next_ip_screen_time = now + self.ip_screen_interval
+                else:
+                    self.ip_screen_until = 0
+
+                show_ip_message = now < self.ip_screen_until
+
                 self.display_comment(self.shared_data.bjornorch_status)
                 image = Image.new('1', (self.shared_data.width, self.shared_data.height))
                 draw = ImageDraw.Draw(image)
@@ -328,7 +485,10 @@ class Display:
                 draw.line((1, 59, self.shared_data.width - 1, 59), fill=0)
                 draw.line((1, 87, self.shared_data.width - 1, 87), fill=0)
 
-                lines = self.shared_data.wrap_text(self.shared_data.bjornsay, self.shared_data.font_arialbold, self.shared_data.width - 4)
+                screen_message = self.shared_data.bjornsay
+                if show_ip_message:
+                    screen_message = f"Device IP: {self.shared_data.device_ip}"
+                lines = self.shared_data.wrap_text(screen_message, self.shared_data.font_arialbold, self.shared_data.width - 4)
                 y_text = int(90 * self.scale_factor_y)
 
                 if self.main_image is not None:
