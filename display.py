@@ -40,6 +40,13 @@ class Display:
         self.screen_reversed = self.shared_data.screen_reversed
         self.web_screen_reversed = self.shared_data.web_screen_reversed
 
+        # E-ink refresh management: the loop uses fast partial refreshes and
+        # forces a full (ghost-clearing) refresh every `full_refresh_interval`
+        # frames. refresh_count == 0 also triggers the first full refresh, which
+        # seeds the partial-update base image.
+        self.refresh_count = 0
+        self.full_refresh_interval = self.config.get("full_refresh_interval", 60)
+
         # Define frise positions for different display types
         self.frise_positions = {
             "epd2in7": {
@@ -280,7 +287,6 @@ class Display:
         self.manual_mode_txt = ""
         while not self.shared_data.display_should_exit:
             try:
-                self.epd_helper.init_partial_update()
                 self.display_comment(self.shared_data.bjornorch_status)
                 image = Image.new('1', (self.shared_data.width, self.shared_data.height))
                 draw = ImageDraw.Draw(image)
@@ -343,8 +349,16 @@ class Display:
                 if self.screen_reversed:
                     image = image.transpose(Image.ROTATE_180)
 
-                self.epd_helper.display_partial(image)
-                self.epd_helper.display_partial(image)
+                # Every `full_refresh_interval` frames (and on the very first
+                # frame) do a full refresh to clear accumulated ghosting and
+                # reseed the partial-update base image; otherwise do a single
+                # fast partial refresh.
+                if self.refresh_count % self.full_refresh_interval == 0:
+                    self.epd_helper.init_full_update()
+                    self.epd_helper.set_base_image(image)
+                else:
+                    self.epd_helper.display_partial(image)
+                self.refresh_count += 1
 
                 if self.web_screen_reversed:
                     image = image.transpose(Image.ROTATE_180)
@@ -362,13 +376,15 @@ def handle_exit_display(signum, frame, display_thread):
     global should_exit
     shared_data.display_should_exit = True
     logger.info("Exit signal received. Waiting for the main loop to finish...")
+    # Stop the render loop first so nothing touches the panel while we sleep it.
+    display_thread.join()
     try:
-        if main_loop and main_loop.epd:
-            main_loop.epd.init(main_loop.epd.sleep)
-            main_loop.epd.Dev_exit()
+        if main_loop and main_loop.epd_helper:
+            # Put the panel into deep sleep. Leaving an e-paper powered in a
+            # non-sleep state for long periods can permanently damage it.
+            main_loop.epd_helper.sleep()
     except Exception as e:
         logger.error(f"Error while closing the display: {e}")
-    display_thread.join()
     logger.info("Main loop finished. Clean exit.")
     sys.exit(0)
 
