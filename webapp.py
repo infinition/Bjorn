@@ -150,6 +150,20 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
 
+class BjornHTTPServer(socketserver.ThreadingTCPServer):
+    """Threaded HTTP server for the web interface.
+
+    - Threaded so a slow request (data endpoint, file download) doesn't block
+      the rest of the UI, which polls the screen image and data continuously.
+    - allow_reuse_address sets SO_REUSEADDR so a quick restart rebinds the same
+      port instead of failing with "Address already in use" and limping onto the
+      next port.
+    - daemon_threads so request threads don't keep the process alive on exit.
+    """
+    allow_reuse_address = True
+    daemon_threads = True
+
+
 class WebThread(threading.Thread):
     """
     Thread to run the web server serving the EPD display interface.
@@ -167,7 +181,7 @@ class WebThread(threading.Thread):
         """
         while not self.shared_data.webapp_should_exit:
             try:
-                with socketserver.TCPServer(("", self.port), self.handler_class) as httpd:
+                with BjornHTTPServer(("", self.port), self.handler_class) as httpd:
                     self.httpd = httpd
                     logger.info(f"Serving at port {self.port}")
                     while not self.shared_data.webapp_should_exit:

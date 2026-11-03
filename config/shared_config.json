@@ -17,6 +17,7 @@
     "startup_delay": 10,
     "web_delay": 2,
     "screen_delay": 1,
+    "full_refresh_interval": 60,
     "comment_delaymin": 15,
     "comment_delaymax": 30,
     "livestatus_delay": 8,

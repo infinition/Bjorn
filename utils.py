@@ -5,6 +5,7 @@ import subprocess
 import os
 import json
 import csv
+import html
 import zipfile
 import uuid
 import cgi
@@ -149,7 +150,10 @@ class WebUtils:
         try:
             log_file_path = self.shared_data.webconsolelog
             if not os.path.exists(log_file_path):
-                subprocess.Popen(f"sudo tail -f /home/bjorn/Bjorn/data/logs/* > {log_file_path}", shell=True)
+                # Derive the log path from shared_data instead of hardcoding
+                # /home/bjorn/Bjorn, which breaks on any other install location.
+                log_glob = os.path.join(self.shared_data.logsdir, '*')
+                subprocess.Popen(f"sudo tail -f {log_glob} > {log_file_path}", shell=True)
 
             with open(log_file_path, 'r') as log_file:
                 log_lines = log_file.readlines()
@@ -235,12 +239,23 @@ class WebUtils:
 
             file_item = field_storage['file']
             if file_item.filename:
-                backup_path = os.path.join(self.shared_data.upload_dir, file_item.filename)
+                # Strip any path from the uploaded name so it can't be written
+                # outside the upload directory.
+                safe_name = os.path.basename(file_item.filename)
+                backup_path = os.path.join(self.shared_data.upload_dir, safe_name)
                 with open(backup_path, 'wb') as output_file:
                     output_file.write(file_item.file.read())
 
+                # Extract safely: reject any zip entry that would resolve
+                # outside currentdir ("zip slip"), rather than trusting
+                # extractall() with an uploaded archive.
+                dest_root = os.path.realpath(self.shared_data.currentdir)
                 with zipfile.ZipFile(backup_path, 'r') as backup_zip:
-                    backup_zip.extractall(self.shared_data.currentdir)
+                    for member in backup_zip.namelist():
+                        target = os.path.realpath(os.path.join(dest_root, member))
+                        if target != dest_root and os.path.commonpath([dest_root, target]) != dest_root:
+                            raise Exception(f"Unsafe path in archive: {member}")
+                    backup_zip.extractall(dest_root)
 
                 handler.send_response(200)
                 handler.send_header("Content-type", "application/json")
@@ -258,18 +273,32 @@ class WebUtils:
             handler.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode('utf-8'))
 
     def download_backup(self, handler):
-        query = unquote(handler.path.split('?filename=')[1])
-        backup_path = os.path.join(self.shared_data.backupdir, query)
-        if os.path.isfile(backup_path):
-            handler.send_response(200)
-            handler.send_header("Content-Disposition", f'attachment; filename="{os.path.basename(backup_path)}"')
-            handler.send_header("Content-type", "application/zip")
+        try:
+            if '?filename=' not in handler.path:
+                handler.send_response(400)
+                handler.end_headers()
+                return
+            query = unquote(handler.path.split('?filename=')[1])
+            # Only ever serve a plain filename from the backup directory; strip
+            # any path components so ?filename=../../etc/passwd can't escape it.
+            filename = os.path.basename(query)
+            backup_path = os.path.join(self.shared_data.backupdir, filename)
+            if os.path.isfile(backup_path):
+                handler.send_response(200)
+                handler.send_header("Content-Disposition", f'attachment; filename="{os.path.basename(backup_path)}"')
+                handler.send_header("Content-type", "application/zip")
+                handler.end_headers()
+                with open(backup_path, 'rb') as file:
+                    handler.wfile.write(file.read())
+            else:
+                handler.send_response(404)
+                handler.end_headers()
+        except Exception as e:
+            self.logger.error(f"Error downloading backup: {e}")
+            handler.send_response(500)
+            handler.send_header("Content-type", "application/json")
             handler.end_headers()
-            with open(backup_path, 'rb') as file:
-                handler.wfile.write(file.read())
-        else:
-            handler.send_response(404)
-            handler.end_headers()
+            handler.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode('utf-8'))
 
     def serve_credentials_data(self, handler):
         try:
@@ -286,26 +315,33 @@ class WebUtils:
             handler.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode('utf-8'))
 
     def generate_html_for_csv_files(self, directory):
-        html = '<div class="credentials-container">\n'
-        for filename in os.listdir(directory):
+        html_out = '<div class="credentials-container">\n'
+        if not os.path.isdir(directory):
+            return html_out + '<p class="no-data">No credentials yet.</p>\n</div>\n'
+        for filename in sorted(os.listdir(directory)):
             if filename.endswith('.csv'):
                 filepath = os.path.join(directory, filename)
-                html += f'<h2>{filename}</h2>\n'
-                html += '<table class="styled-table">\n<thead>\n<tr>\n'
+                html_out += f'<h2>{html.escape(filename)}</h2>\n'
+                html_out += '<table class="styled-table">\n<thead>\n<tr>\n'
                 with open(filepath, 'r') as file:
                     reader = csv.reader(file)
-                    headers = next(reader)
+                    headers = next(reader, None)
+                    if headers is None:
+                        # Empty CSV: skip instead of raising StopIteration and
+                        # taking down the whole credentials page.
+                        html_out += '</tr>\n</thead>\n<tbody>\n</tbody>\n</table>\n'
+                        continue
                     for header in headers:
-                        html += f'<th>{header}</th>\n'
-                    html += '</tr>\n</thead>\n<tbody>\n'
+                        html_out += f'<th>{html.escape(header)}</th>\n'
+                    html_out += '</tr>\n</thead>\n<tbody>\n'
                     for row in reader:
-                        html += '<tr>\n'
+                        html_out += '<tr>\n'
                         for cell in row:
-                            html += f'<td>{cell}</td>\n'
-                        html += '</tr>\n'
-                html += '</tbody>\n</table>\n'
-        html += '</div>\n'
-        return html
+                            html_out += f'<td>{html.escape(cell)}</td>\n'
+                        html_out += '</tr>\n'
+                html_out += '</tbody>\n</table>\n'
+        html_out += '</div>\n'
+        return html_out
 
     def list_files(self, directory):
         files = []
@@ -375,39 +411,47 @@ class WebUtils:
 
 
     def serve_favicon(self, handler):
-        handler.send_response(200)
-        handler.send_header("Content-type", "image/x-icon")
-        handler.end_headers()
-        favicon_path = os.path.join(self.shared_data.webdir, '/images/favicon.ico')
-        self.logger.info(f"Serving favicon from {favicon_path}")
+        # Note: no leading slash on 'images/...'. A leading slash makes
+        # os.path.join discard webdir and resolve to the filesystem root, so the
+        # favicon always 404'd. Status must also be sent before the body (and
+        # only after we know the file opened), so the 404 path stays valid.
+        favicon_path = os.path.join(self.shared_data.webdir, 'images/favicon.ico')
         try:
             with open(favicon_path, 'rb') as file:
-                handler.wfile.write(file.read())
+                content = file.read()
+            handler.send_response(200)
+            handler.send_header("Content-type", "image/x-icon")
+            handler.end_headers()
+            handler.wfile.write(content)
         except FileNotFoundError:
             self.logger.error(f"Favicon not found at {favicon_path}")
             handler.send_response(404)
             handler.end_headers()
 
     def serve_manifest(self, handler):
-        handler.send_response(200)
-        handler.send_header("Content-type", "application/json")
-        handler.end_headers()
         manifest_path = os.path.join(self.shared_data.webdir, 'manifest.json')
         try:
             with open(manifest_path, 'r') as file:
-                handler.wfile.write(file.read().encode('utf-8'))
+                content = file.read()
+            handler.send_response(200)
+            handler.send_header("Content-type", "application/json")
+            handler.end_headers()
+            handler.wfile.write(content.encode('utf-8'))
         except FileNotFoundError:
             handler.send_response(404)
             handler.end_headers()
     
     def serve_apple_touch_icon(self, handler):
-        handler.send_response(200)
-        handler.send_header("Content-type", "image/png")
-        handler.end_headers()
-        icon_path = os.path.join(self.shared_data.webdir, 'icons/apple-touch-icon.png')
+        # The icon lives in web/images/, not web/icons/; send status only after
+        # the file opens so the 404 path stays valid.
+        icon_path = os.path.join(self.shared_data.webdir, 'images/apple-touch-icon.png')
         try:
             with open(icon_path, 'rb') as file:
-                handler.wfile.write(file.read())
+                content = file.read()
+            handler.send_response(200)
+            handler.send_header("Content-type", "image/png")
+            handler.end_headers()
+            handler.wfile.write(content)
         except FileNotFoundError:
             handler.send_response(404)
             handler.end_headers()
@@ -506,7 +550,9 @@ class WebUtils:
             command = """
             sudo rm -rf config/*.json && sudo rm -rf data/*.csv && sudo rm -rf data/*.log  && sudo rm -rf backup/backups/* && sudo rm -rf backup/uploads/* && sudo rm -rf data/output/data_stolen/* && sudo rm -rf data/output/crackedpwd/* && sudo rm -rf config/* && sudo rm -rf data/output/scan_results/* && sudo rm -rf __pycache__ && sudo rm -rf config/__pycache__ && sudo rm -rf data/__pycache__  && sudo rm -rf actions/__pycache__  && sudo rm -rf resources/__pycache__ && sudo rm -rf web/__pycache__ && sudo rm -rf *.log && sudo rm -rf resources/waveshare_epd/__pycache__ && sudo rm -rf data/logs/*  && sudo rm -rf data/output/vulnerabilities/* && sudo rm -rf data/logs/*
             """
-            result = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            # Pin the working directory so these relative `rm -rf` paths always
+            # target the Bjorn install, not wherever the service was launched.
+            result = subprocess.Popen(command, shell=True, cwd=self.shared_data.currentdir, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             stdout, stderr = result.communicate()
 
             if result.returncode == 0:
@@ -530,7 +576,9 @@ class WebUtils:
             command = """
             sudo rm -rf data/*.log && sudo rm -rf data/output/data_stolen/* && sudo rm -rf data/output/crackedpwd/*  && sudo rm -rf data/output/scan_results/* && sudo rm -rf __pycache__ && sudo rm -rf config/__pycache__ && sudo rm -rf data/__pycache__  && sudo rm -rf actions/__pycache__  && sudo rm -rf resources/__pycache__ && sudo rm -rf web/__pycache__ && sudo rm -rf *.log && sudo rm -rf resources/waveshare_epd/__pycache__ && sudo rm -rf data/logs/*  && sudo rm -rf data/output/vulnerabilities/* && sudo rm -rf data/logs/*
             """
-            result = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            # Pin the working directory so these relative `rm -rf` paths always
+            # target the Bjorn install, not wherever the service was launched.
+            result = subprocess.Popen(command, shell=True, cwd=self.shared_data.currentdir, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             stdout, stderr = result.communicate()
 
             if result.returncode == 0:
@@ -608,11 +656,18 @@ class WebUtils:
 
     def serve_network_data(self, handler):
         try:
-            latest_file = max(
-                [os.path.join(self.shared_data.scan_results_dir, f) for f in os.listdir(self.shared_data.scan_results_dir) if f.startswith('result_')],
-                key=os.path.getctime
-            )
-            table_html = self.generate_html_table(latest_file)
+            result_files = [
+                os.path.join(self.shared_data.scan_results_dir, f)
+                for f in os.listdir(self.shared_data.scan_results_dir)
+                if f.startswith('result_')
+            ]
+            if not result_files:
+                # No scan has run yet: return an empty-but-valid response
+                # instead of raising ValueError from max() on an empty list.
+                table_html = '<p class="no-data">No scan results yet.</p>'
+            else:
+                latest_file = max(result_files, key=os.path.getctime)
+                table_html = self.generate_html_table(latest_file)
             handler.send_response(200)
             handler.send_header("Content-type", "text/html")
             handler.end_headers()
@@ -627,15 +682,15 @@ class WebUtils:
         table_html = '<table class="styled-table"><thead><tr>'
         with open(file_path, 'r') as file:
             reader = csv.reader(file)
-            headers = next(reader)
+            headers = next(reader, [])
             for header in headers:
-                table_html += f'<th>{header}</th>'
+                table_html += f'<th>{html.escape(header)}</th>'
             table_html += '</tr></thead><tbody>'
             for row in reader:
                 table_html += '<tr>'
                 for cell in row:
                     cell_class = "green" if cell.strip() else "red"
-                    table_html += f'<td class="{cell_class}">{cell}</td>'
+                    table_html += f'<td class="{cell_class}">{html.escape(cell)}</td>'
                 table_html += '</tr>'
             table_html += '</tbody></table>'
         return table_html
@@ -645,12 +700,15 @@ class WebUtils:
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
                 reader = csv.reader(file)
-                headers = next(reader)
+                headers = next(reader, [])
                 for header in headers:
-                    table_html += f'<th>{header}</th>'
+                    table_html += f'<th>{html.escape(header)}</th>'
                 table_html += '</tr></thead><tbody>'
                 for row in reader:
-                    row_class = "blue-row" if '0' in row[3] else ""
+                    # Column index 3 is the "Alive" flag ('0' = dead host).
+                    # Guard against short/malformed rows so we don't throw an
+                    # IndexError mid-table and emit unclosed HTML.
+                    row_class = "blue-row" if len(row) > 3 and row[3].strip() == '0' else ""
                     table_html += f'<tr class="{row_class}">'
                     for cell in row:
                         cell_class = ""
@@ -660,7 +718,7 @@ class WebUtils:
                             cell_class = "red bold"
                         elif cell.strip() == "":
                             cell_class = "grey"
-                        table_html += f'<td class="{cell_class}">{cell}</td>'
+                        table_html += f'<td class="{cell_class}">{html.escape(cell)}</td>'
                     table_html += '</tr>'
                 table_html += '</tbody></table>'
         except Exception as e:
@@ -795,7 +853,15 @@ method=auto
     def download_file(self, handler):
         try:
             query = unquote(handler.path.split('?path=')[1])
-            file_path = os.path.join(self.shared_data.datastolendir, query)
+            # Resolve against the loot directory and confirm the result stays
+            # inside it, so a crafted ?path=../../etc/passwd (or an absolute
+            # path) can't escape and read arbitrary files off the device.
+            base_dir = os.path.realpath(self.shared_data.datastolendir)
+            file_path = os.path.realpath(os.path.join(base_dir, query.lstrip('/')))
+            if os.path.commonpath([base_dir, file_path]) != base_dir:
+                handler.send_response(403)
+                handler.end_headers()
+                return
             if os.path.isfile(file_path):
                 handler.send_response(200)
                 handler.send_header("Content-Disposition", f'attachment; filename="{os.path.basename(file_path)}"')
